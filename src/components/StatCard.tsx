@@ -45,7 +45,6 @@ export default function StatCard({ title, value, icon: Icon, trend, trendUp, col
           <span className={trendUp ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
             {trendUp ? "↑" : "↓"} {trend}
           </span>
-          <span className="text-app-muted text-xs">vs last month</span>
         </div>
       )}
     </motion.div>

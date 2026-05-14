@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Monitor, Box, CheckCircle2, Calendar, Clock } from "lucide-react";
 import StatCard from "@/components/StatCard";
@@ -8,6 +9,7 @@ import { initialSoftware, Software } from "@/data/software";
 import { initialComputers, Computer } from "@/data/computers";
 import { supabase } from "@/lib/supabase";
 import clsx from "clsx";
+
 
 export default function Dashboard() {
   const [softwareList, setSoftwareList] = useState<Software[]>([]);
@@ -98,8 +100,6 @@ export default function Dashboard() {
           title="Total Computers"
           value={computerList.length}
           icon={Monitor}
-          trend={`${((computerList.length / initialComputers.length) * 100 - 100).toFixed(0)}%`}
-          trendUp={computerList.length >= initialComputers.length}
           color="blue"
           delay={0.1}
         />
@@ -107,8 +107,6 @@ export default function Dashboard() {
           title="Software Licenses"
           value={softwareList.length}
           icon={Box}
-          trend={`${((softwareList.length / initialSoftware.length) * 100 - 100).toFixed(0)}%`}
-          trendUp={softwareList.length >= initialSoftware.length}
           color="purple"
           delay={0.2}
         />
@@ -116,24 +114,22 @@ export default function Dashboard() {
           title="AVAILABLE Devices"
           value={availableDevices}
           icon={CheckCircle2}
-          trend="Live"
-          trendUp={true}
           color="emerald"
           delay={0.3}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Software Expiry Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="lg:col-span-2 bg-app-surface border border-app-border rounded-2xl p-6"
+          className="bg-app-surface border border-app-border rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-app-text uppercase tracking-tight">Software Expiry Watchlist</h2>
-            <button className="text-sm text-blue-500 hover:text-blue-400 font-bold transition-colors">View All</button>
+            <Link href="/software" className="text-sm text-blue-500 hover:text-blue-400 font-bold transition-colors">View All</Link>
           </div>
           
           <div className="overflow-x-auto">
@@ -182,50 +178,6 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </motion.div>
-
-        {/* Asset Distribution Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-app-surface border border-app-border rounded-2xl p-6"
-        >
-          <h2 className="text-lg font-bold text-app-text uppercase tracking-tight mb-8">Asset Distribution</h2>
-          <div className="relative h-48 flex items-center justify-center mb-6">
-            {/* Mock Donut Chart */}
-            <div className="w-40 h-40 rounded-full border-[18px] border-app-border relative flex items-center justify-center shadow-inner">
-              <div className="absolute inset-0 rounded-full border-[18px] border-blue-500" style={{ clipPath: "polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 50%)" }}></div>
-              <div className="absolute inset-0 rounded-full border-[18px] border-purple-500" style={{ clipPath: "polygon(50% 50%, 0 50%, 0 0, 50% 0)" }}></div>
-              <div className="absolute inset-0 rounded-full border-[18px] border-emerald-500" style={{ clipPath: "polygon(50% 50%, 50% 0, 100% 0)" }}></div>
-              
-              <div className="text-center">
-                <p className="text-3xl font-black text-app-text">{computerList.length + softwareList.length}</p>
-                <p className="text-[10px] text-app-muted font-bold uppercase tracking-widest">Total Assets</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 space-y-4">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/40"></div>
-                <span className="text-app-text font-bold uppercase tracking-wider">Computers</span>
-              </div>
-              <span className="text-app-muted font-black">
-                {Math.round((computerList.length / (computerList.length + softwareList.length)) * 100)}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/40"></div>
-                <span className="text-app-text font-bold uppercase tracking-wider">Software</span>
-              </div>
-              <span className="text-app-muted font-black">
-                {Math.round((softwareList.length / (computerList.length + softwareList.length)) * 100)}%
-              </span>
-            </div>
           </div>
         </motion.div>
       </div>

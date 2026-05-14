@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-
-import { AuthProvider } from "@/context/AuthContext";
+import DynamicClientLayout from "@/components/DynamicClientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,16 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className={`${inter.className} min-h-full flex`}>
-        <AuthProvider>
-          <Sidebar />
-          <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full">
-            <Header />
-            <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
-              {children}
-            </main>
-          </div>
-        </AuthProvider>
+      <body className={`${inter.className} min-h-full bg-app-bg`}>
+        <DynamicClientLayout>
+          {children}
+        </DynamicClientLayout>
       </body>
     </html>
   );

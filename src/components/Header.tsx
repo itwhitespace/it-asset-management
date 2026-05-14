@@ -22,17 +22,17 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 border-b border-app-border bg-app-bg/50 backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30">
-      <div className="flex-1 max-w-xs sm:max-w-xl relative ml-12 lg:ml-0">
-        <Search className="w-4 h-4 sm:w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
+    <header className="h-16 border-b border-app-border bg-app-bg/50 backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 w-full">
+      <div className="flex-1 min-w-0 max-w-xs sm:max-w-xl relative ml-10 lg:ml-0">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
         <input
           type="text"
           placeholder="Search..."
-          className="w-full bg-app-surface/50 border border-app-border rounded-full py-1.5 sm:py-2 pl-9 sm:pl-10 pr-4 text-xs sm:text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+          className="w-full bg-app-surface/50 border border-app-border rounded-full py-1.5 pl-9 pr-4 text-xs text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
         />
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-6">
+      <div className="flex items-center gap-2 sm:gap-4 ml-2 flex-shrink-0">
         {/* Theme Switcher */}
         <div className="relative">
           <button 
@@ -75,8 +75,8 @@ export default function Header() {
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 border-l border-app-border pl-4 sm:pl-6">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 flex items-center justify-center text-sm font-bold text-white shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-3 border-l border-app-border pl-2 sm:pl-4">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 flex items-center justify-center text-sm font-bold text-white shadow-lg flex-shrink-0">
             IT
           </div>
           <div className="hidden md:block">

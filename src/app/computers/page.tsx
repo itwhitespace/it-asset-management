@@ -9,6 +9,7 @@ import { exportToExcel } from "@/utils/excel";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
+
 export default function Computers() {
   const [computers, setComputers] = useState<Computer[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -536,7 +537,7 @@ export default function Computers() {
               </div>
               <h2 className="text-2xl font-black text-app-text mb-2 uppercase">Delete Device?</h2>
               <p className="text-app-muted mb-8 font-medium">
-                Are you sure you want to remove <span className="text-app-text font-bold">"{deletingDevice.model}"</span> ({deletingDevice.id})?<br/>
+                Are you sure you want to remove <span className="text-app-text font-bold">&quot;{deletingDevice.model}&quot;</span> ({deletingDevice.id})?<br/>
                 This action is permanent.
               </p>
               <div className="flex gap-4">

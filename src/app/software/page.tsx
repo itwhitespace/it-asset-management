@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Filter, Box, X, Users, DollarSign, Trash2, UserPlus, Edit2, AlertTriangle, Download } from "lucide-react";
+import { Plus, Search, Filter, Box, X, Users, DollarSign, Trash2, UserPlus, Edit2, AlertTriangle, Download, LayoutGrid, List, Eye } from "lucide-react";
 import { initialSoftware, Software as SoftwareType, AssignedUser } from "@/data/software";
 import PinModal from "@/components/PinModal";
 import { exportToExcel } from "@/utils/excel";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+
 
 export default function Software() {
   const [softwareList, setSoftwareList] = useState<SoftwareType[]>([]);
@@ -20,6 +21,7 @@ export default function Software() {
 
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   // PIN Protection State
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -334,6 +336,22 @@ export default function Software() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-3"
         >
+          <div className="flex bg-app-surface border border-app-border rounded-xl p-1 mr-2">
+            <button 
+              onClick={() => setViewMode("card")}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-app-muted hover:text-app-text'}`}
+              title="Card View"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => setViewMode("table")}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-app-muted hover:text-app-text'}`}
+              title="Table View"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
           <button
             onClick={handleExport}
             className="bg-app-surface border border-app-border hover:bg-app-bg text-app-text px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95"
@@ -363,80 +381,172 @@ export default function Software() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredSoftware.map((software, i) => (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            key={software.id}
-            className="group relative bg-app-surface border border-app-border rounded-2xl p-5 hover:border-purple-500/50 transition-all cursor-pointer shadow-sm hover:shadow-purple-500/10"
-            onClick={() => setViewingSoftwareId(software.id)}
-          >
-            {/* Top Info */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-app-bg border border-app-border rounded-xl text-purple-400 group-hover:scale-110 transition-transform">
-                  <Box className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-app-text line-clamp-1">{software.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] uppercase font-black text-app-muted bg-app-bg px-1.5 py-0.5 rounded border border-app-border">{software.type}</span>
-                    <span className="text-[10px] uppercase font-black text-purple-400 bg-purple-500/5 px-1.5 py-0.5 rounded border border-purple-500/10">{software.licenseType}</span>
+      {viewMode === "card" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredSoftware.map((software, i) => (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              key={software.id}
+              className="group relative bg-app-surface border border-app-border rounded-2xl p-5 hover:border-purple-500/50 transition-all cursor-pointer shadow-sm hover:shadow-purple-500/10"
+              onClick={() => setViewingSoftwareId(software.id)}
+            >
+              {/* Top Info */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-app-bg border border-app-border rounded-xl text-purple-400 group-hover:scale-110 transition-transform">
+                    <Box className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-app-text line-clamp-1">{software.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] uppercase font-black text-app-muted bg-app-bg px-1.5 py-0.5 rounded border border-app-border">{software.type}</span>
+                      <span className="text-[10px] uppercase font-black text-purple-400 bg-purple-500/5 px-1.5 py-0.5 rounded border border-purple-500/10">{software.licenseType}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); checkPin('edit', software); }}
-                  className="p-2 text-app-muted hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); checkPin('delete', software.id); }}
-                  className="p-2 text-app-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Progress */}
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-app-muted font-bold uppercase tracking-wider text-[10px]">Utilization</span>
-                  <span className="font-bold text-app-text">{software.used} / {software.seats}</span>
-                </div>
-                <div className="h-1.5 w-full bg-app-bg rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      (software.used / software.seats) > 0.9 ? 'bg-amber-500' : 'bg-purple-500'
-                    }`}
-                    style={{ width: `${(software.used / software.seats) * 100}%` }}
-                  />
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); checkPin('edit', software); }}
+                    className="p-2 text-app-muted hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); checkPin('delete', software.id); }}
+                    className="p-2 text-app-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-app-border/50">
-                <div className="text-[11px]">
-                  <span className="text-app-muted block font-bold uppercase text-[9px]">Next Renewal</span>
-                  <span className="text-app-text font-bold">{software.expiry}</span>
+              {/* Progress */}
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-app-muted font-bold uppercase tracking-wider text-[10px]">Utilization</span>
+                    <span className="font-bold text-app-text">{software.used} / {software.seats}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-app-bg rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        (software.used / software.seats) > 0.9 ? 'bg-amber-500' : 'bg-purple-500'
+                      }`}
+                      style={{ width: `${(software.used / software.seats) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
-                  software.status === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                  software.status === "Warning" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                  "bg-red-500/10 text-red-400 border-red-500/20"
-                }`}>
-                  {software.status.toUpperCase()}
-                </span>
+
+                <div className="flex items-center justify-between pt-3 border-t border-app-border/50">
+                  <div className="text-[11px]">
+                    <span className="text-app-muted block font-bold uppercase text-[9px]">Next Renewal</span>
+                    <span className="text-app-text font-bold">{software.expiry}</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                    software.status === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                    software.status === "Warning" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                    "bg-red-500/10 text-red-400 border-red-500/20"
+                  }`}>
+                    {software.status.toUpperCase()}
+                  </span>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-app-surface border border-app-border rounded-2xl overflow-hidden shadow-sm"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-app-bg text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border">
+                  <th className="p-4 font-bold">Software</th>
+                  <th className="p-4 font-bold">Type</th>
+                  <th className="p-4 font-bold">License</th>
+                  <th className="p-4 font-bold">Usage</th>
+                  <th className="p-4 font-bold">Expiry</th>
+                  <th className="p-4 font-bold">Status</th>
+                  <th className="p-4 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-app-border">
+                {filteredSoftware.map((software, i) => (
+                  <tr key={software.id} className="group hover:bg-app-bg/30 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-app-bg border border-app-border rounded-lg text-purple-400">
+                          <Box className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-app-text text-sm">{software.name}</p>
+                          <p className="text-[10px] text-app-muted uppercase font-bold">{software.id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[10px] uppercase font-black text-app-muted bg-app-bg px-2 py-0.5 rounded border border-app-border">{software.type}</span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[10px] uppercase font-black text-purple-400 bg-purple-500/5 px-2 py-0.5 rounded border border-purple-500/10">{software.licenseType}</span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 bg-app-bg rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${
+                              (software.used / software.seats) > 0.9 ? 'bg-amber-500' : 'bg-purple-500'
+                            }`}
+                            style={{ width: `${(software.used / software.seats) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-app-text">{software.used}/{software.seats}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-xs font-bold text-app-text">{software.expiry}</td>
+                    <td className="p-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${
+                        software.status === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                        software.status === "Warning" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                        "bg-red-500/10 text-red-400 border-red-500/20"
+                      }`}>
+                        {software.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => setViewingSoftwareId(software.id)}
+                          className="p-2 text-app-muted hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => checkPin('edit', software)}
+                          className="p-2 text-app-muted hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => checkPin('delete', software.id)}
+                          className="p-2 text-app-muted hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      )}
 
       {/* Add/Edit License Modal */}
       <AnimatePresence>
@@ -483,7 +593,7 @@ export default function Software() {
               </div>
               <h2 className="text-2xl font-black text-app-text mb-2 uppercase">Confirm Deletion</h2>
               <p className="text-app-muted mb-8 font-medium">
-                Are you sure you want to delete <span className="text-app-text font-bold">"{deletingSoftware?.name}"</span>?<br/>
+                Are you sure you want to delete <span className="text-app-text font-bold">&quot;{deletingSoftware?.name}&quot;</span>?<br/>
                 This action cannot be undone.
               </p>
               <div className="flex gap-4">

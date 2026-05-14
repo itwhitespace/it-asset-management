@@ -21,6 +21,7 @@ type RentalEquipment = {
   remark: string;
 };
 
+
 export default function RentalEquipments() {
   const [equipments, setEquipments] = useState<RentalEquipment[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

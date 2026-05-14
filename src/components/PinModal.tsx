@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X, AlertCircle } from "lucide-react";
 import { validatePin } from "@/utils/admin";
@@ -43,7 +43,7 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = "Admin Ve
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     const pinString = pin.join("");
     if (pinString.length === 6) {
@@ -57,13 +57,13 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = "Admin Ve
         inputs.current[0]?.focus();
       }
     }
-  };
+  }, [pin, onSuccess, onClose]);
 
   useEffect(() => {
     if (pin.every(digit => digit !== "")) {
       handleSubmit();
     }
-  }, [pin]);
+  }, [pin, handleSubmit]);
 
   return (
     <AnimatePresence>

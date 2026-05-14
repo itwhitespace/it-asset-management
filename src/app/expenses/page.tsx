@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Banknote, TrendingUp, Calendar } from "lucide-react";
 import StatCard from "@/components/StatCard";
-import { initialSoftware, Software } from "@/data/software";
+import { Software } from "@/data/software";
 import { supabase } from "@/lib/supabase";
 
 const months = [

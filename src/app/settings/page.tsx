@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import PinModal from "@/components/PinModal";
 import { useAuth } from "@/context/AuthContext";
 
+
 export default function SettingsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -71,8 +72,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-app-bg text-app-text p-4 lg:p-8">
-      <Header title="Settings" subtitle="Manage system administrators and security" />
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-3xl font-bold text-app-text">Settings</h1>
+          <p className="text-app-muted mt-2">Manage system administrators and security</p>
+        </motion.div>
+      </div>
 
       {isAuthorized ? (
         <div className="max-w-4xl mx-auto space-y-8">
