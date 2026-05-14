@@ -8,7 +8,6 @@ import Header from "@/components/Header";
 import PinModal from "@/components/PinModal";
 import { useAuth } from "@/context/AuthContext";
 
-
 export default function SettingsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [isAdding, setIsAdding] = useState(false);
