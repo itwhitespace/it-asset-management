@@ -6,26 +6,27 @@ import { Settings, UserPlus, Trash2, ShieldCheck, Mail, Lock, Plus, X } from "lu
 import { Admin, getAdmins, addAdmin, deleteAdmin } from "@/utils/admin";
 import Header from "@/components/Header";
 import PinModal from "@/components/PinModal";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SettingsPage() {
+  console.log("Settings Page Build Version: 4");
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", pin: "" });
   const [isLoading, setIsLoading] = useState(true);
   
   // Security State
-  const { isAdmin, login } = useAuth();
+  const { isAdmin: isSystemAdmin, login: performLogin } = useAuth();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isSystemAdmin) {
       setIsAuthorized(true);
     } else {
       setIsPinModalOpen(true);
     }
-  }, [isAdmin]);
+  }, [isSystemAdmin]);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -34,7 +35,7 @@ export default function SettingsPage() {
   }, [isAuthorized]);
 
   const onPinSuccess = () => {
-    login();
+    performLogin();
     setIsAuthorized(true);
   };
 
