@@ -6,6 +6,7 @@ import { Settings, UserPlus, Trash2, ShieldCheck, Mail, Lock, Plus, X } from "lu
 import { Admin, getAdmins, addAdmin, deleteAdmin } from "@/utils/admin";
 import Header from "@/components/Header";
 import PinModal from "@/components/PinModal";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SettingsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
