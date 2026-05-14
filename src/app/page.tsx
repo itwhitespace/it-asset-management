@@ -1,65 +1,234 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Monitor, Box, CheckCircle2, Calendar, Clock } from "lucide-react";
+import StatCard from "@/components/StatCard";
+import { initialSoftware, Software } from "@/data/software";
+import { initialComputers, Computer } from "@/data/computers";
+import { supabase } from "@/lib/supabase";
+import clsx from "clsx";
+
+export default function Dashboard() {
+  const [softwareList, setSoftwareList] = useState<Software[]>([]);
+  const [computerList, setComputerList] = useState<Computer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      
+      const [compRes, softRes] = await Promise.all([
+        supabase.from('computers').select('*'),
+        supabase.from('software').select('*')
+      ]);
+
+      if (compRes.data) {
+        setComputerList(compRes.data.map(item => ({
+          id: item.id,
+          model: item.model,
+          user: item.user_name,
+          department: item.department,
+          company: item.company,
+          status: item.status,
+          type: item.type,
+          os: item.os,
+          osKey: item.os_key,
+          serialNo: item.serial_no,
+          macAddress: item.mac_address,
+          mainBoard: item.main_board,
+          cpu: item.cpu,
+          ram: item.ram,
+          gpu: item.gpu,
+          hdd: item.hdd,
+          warranty: item.warranty,
+          purchaseDate: item.purchase_date,
+          price: item.price
+        })));
+      }
+
+      if (softRes.data) {
+        setSoftwareList(softRes.data.map(item => ({
+          id: item.id,
+          name: item.name,
+          detail: item.detail,
+          seats: item.seats,
+          used: item.used,
+          expiry: item.expiry,
+          status: item.status,
+          pricePerUnit: parseFloat(item.price_per_unit),
+          type: item.type,
+          licenseType: item.license_type,
+          assignedUsers: item.assigned_users || []
+        })));
+      }
+      
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  // Calculate available devices
+  const availableDevices = computerList.filter(c => c.status === "Available").length;
+
+  // Calculate remaining days and sort
+  const sortedSoftware = [...softwareList].map(s => {
+    const expiry = new Date(s.expiry);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return { ...s, remainingDays: diffDays };
+  }).sort((a, b) => a.remainingDays - b.remainingDays);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="max-w-6xl mx-auto pb-10">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <h1 className="text-3xl font-bold text-app-text">Dashboard Overview</h1>
+        <p className="text-app-muted mt-2">Welcome back to Whitespace Asset. Manage your IT inventory efficiently.</p>
+      </motion.div>
+
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          title="Total Computers"
+          value={computerList.length}
+          icon={Monitor}
+          trend={`${((computerList.length / initialComputers.length) * 100 - 100).toFixed(0)}%`}
+          trendUp={computerList.length >= initialComputers.length}
+          color="blue"
+          delay={0.1}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <StatCard
+          title="Software Licenses"
+          value={softwareList.length}
+          icon={Box}
+          trend={`${((softwareList.length / initialSoftware.length) * 100 - 100).toFixed(0)}%`}
+          trendUp={softwareList.length >= initialSoftware.length}
+          color="purple"
+          delay={0.2}
+        />
+        <StatCard
+          title="AVAILABLE Devices"
+          value={availableDevices}
+          icon={CheckCircle2}
+          trend="Live"
+          trendUp={true}
+          color="emerald"
+          delay={0.3}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Software Expiry Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="lg:col-span-2 bg-app-surface border border-app-border rounded-2xl p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-app-text uppercase tracking-tight">Software Expiry Watchlist</h2>
+            <button className="text-sm text-blue-500 hover:text-blue-400 font-bold transition-colors">View All</button>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border">
+                  <th className="pb-4 font-bold">Software Name</th>
+                  <th className="pb-4 font-bold">Expiry Date</th>
+                  <th className="pb-4 font-bold text-right">Remaining</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-app-border">
+                {sortedSoftware.slice(0, 5).map((item, i) => (
+                  <tr key={item.id} className="group hover:bg-app-bg/50 transition-colors">
+                    <td className="py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-app-bg border border-app-border flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                          <Box className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-app-text leading-tight">{item.name}</p>
+                          <p className="text-[10px] text-app-muted uppercase font-bold mt-0.5">{item.licenseType} LICENSE</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-5 text-sm text-app-muted font-medium">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 opacity-50" />
+                        {item.expiry}
+                      </div>
+                    </td>
+                    <td className="py-5 text-right">
+                      <div className={clsx(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border",
+                        item.remainingDays <= 15 
+                          ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                          : item.remainingDays <= 30 
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      )}>
+                        <Clock className="w-3.5 h-3.5" />
+                        {item.remainingDays} DAYS
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* Asset Distribution Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-app-surface border border-app-border rounded-2xl p-6"
+        >
+          <h2 className="text-lg font-bold text-app-text uppercase tracking-tight mb-8">Asset Distribution</h2>
+          <div className="relative h-48 flex items-center justify-center mb-6">
+            {/* Mock Donut Chart */}
+            <div className="w-40 h-40 rounded-full border-[18px] border-app-border relative flex items-center justify-center shadow-inner">
+              <div className="absolute inset-0 rounded-full border-[18px] border-blue-500" style={{ clipPath: "polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 50%)" }}></div>
+              <div className="absolute inset-0 rounded-full border-[18px] border-purple-500" style={{ clipPath: "polygon(50% 50%, 0 50%, 0 0, 50% 0)" }}></div>
+              <div className="absolute inset-0 rounded-full border-[18px] border-emerald-500" style={{ clipPath: "polygon(50% 50%, 50% 0, 100% 0)" }}></div>
+              
+              <div className="text-center">
+                <p className="text-3xl font-black text-app-text">{computerList.length + softwareList.length}</p>
+                <p className="text-[10px] text-app-muted font-bold uppercase tracking-widest">Total Assets</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/40"></div>
+                <span className="text-app-text font-bold uppercase tracking-wider">Computers</span>
+              </div>
+              <span className="text-app-muted font-black">
+                {Math.round((computerList.length / (computerList.length + softwareList.length)) * 100)}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/40"></div>
+                <span className="text-app-text font-bold uppercase tracking-wider">Software</span>
+              </div>
+              <span className="text-app-muted font-black">
+                {Math.round((softwareList.length / (computerList.length + softwareList.length)) * 100)}%
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
