@@ -27,7 +27,7 @@ export default function Software() {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'add' | 'edit' | 'delete' | 'assign' | 'remove', data?: any } | null>(null);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     // Flatten assigned users for better excel view
     const exportData = softwareList.map(sw => ({
       ID: sw.id,
@@ -41,7 +41,7 @@ export default function Software() {
       License: sw.licenseType,
       Detail: sw.detail
     }));
-    exportToExcel(exportData, "IT-Assets-Software");
+    await exportToExcel(exportData, "IT-Assets-Software");
   };
 
   const checkPin = (type: 'add' | 'edit' | 'delete' | 'assign' | 'remove', data?: any) => {

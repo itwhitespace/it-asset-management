@@ -76,8 +76,8 @@ export default function RentalEquipments() {
     remark: equip.remark
   });
 
-  const handleExport = () => {
-    exportToExcel(equipments, "IT-Assets-Rental-Equipments");
+  const handleExport = async () => {
+    await exportToExcel(equipments, "IT-Assets-Rental-Equipments");
   };
 
   const checkPin = (type: 'add' | 'edit', data?: any) => {

@@ -5,6 +5,8 @@ import DynamicClientLayout from "@/components/DynamicClientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Whitespace Asset - IT Management",
   description: "Advanced IT Asset Management System for Whitespace.",

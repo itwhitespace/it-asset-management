@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export default function NotFound() {
@@ -7,7 +9,7 @@ export default function NotFound() {
       <p className="text-app-muted mb-8 max-w-md">
         The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
       </p>
-      <Link 
+      <Link
         href="/"
         className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
       >

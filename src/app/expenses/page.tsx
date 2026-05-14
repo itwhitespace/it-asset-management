@@ -1,4 +1,5 @@
-"use client";
+"use client"; // บรรทัดที่ 1 ต้องเป็นอันนี้เท่านั้น!
+
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -8,7 +9,7 @@ import { Software } from "@/data/software";
 import { supabase } from "@/lib/supabase";
 
 const months = [
-  "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26", "Mar-26", 
+  "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26", "Mar-26",
   "Apr-26", "May-26", "Jun-26", "Jul-26", "Aug-26", "Sep-26"
 ];
 
@@ -63,7 +64,7 @@ export default function Expenses() {
 
   const getMonthlyCost = (software: Software, monthLabel: string) => {
     const totalCost = software.pricePerUnit * software.seats;
-    
+
     if (software.licenseType === "Monthly") {
       return totalCost;
     } else {
@@ -139,7 +140,7 @@ export default function Expenses() {
                 <th className="p-4 text-right font-black tracking-widest w-28 bg-app-bg/50">TOTAL/YEAR</th>
               </tr>
             </thead>
-            
+
             {categories.map((type) => {
               const categoryItems = softwareList.filter(s => s.type === type);
               return (
