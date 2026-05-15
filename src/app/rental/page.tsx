@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Package, X, Eye, Edit, MapPin, User, Calendar, CreditCard, Download, Trash2 } from "lucide-react";
+import { Plus, Package, X, Eye, Edit, MapPin, User, Calendar, CreditCard, Download, Trash2, History, LogOut, LogIn } from "lucide-react";
 import PinModal from "@/components/PinModal";
 import { exportToExcel } from "@/utils/excel";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,15 @@ type RentalEquipment = {
   remark: string;
 };
 
+type RentalHistory = {
+  id?: string;
+  asset_id: string;
+  model: string;
+  action: "Rental" | "Return";
+  holder: string;
+  date: string;
+};
+
 
 export default function RentalEquipments() {
   const [equipments, setEquipments] = useState<RentalEquipment[]>([]);
@@ -29,13 +38,29 @@ export default function RentalEquipments() {
   const [isLoading, setIsLoading] = useState(true);
   const { isAdmin, login } = useAuth();
 
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [rentalHistory, setRentalHistory] = useState<RentalHistory[]>([]);
+  const [rentingEquip, setRentingEquip] = useState<RentalEquipment | null>(null);
+  const [returningEquip, setReturningEquip] = useState<RentalEquipment | null>(null);
+
   // PIN Protection State
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'add' | 'edit' | 'delete', data?: any } | null>(null);
 
   useEffect(() => {
     fetchEquipments();
+    fetchHistory();
   }, []);
+
+  const fetchHistory = async () => {
+    const { data, error } = await supabase
+      .from('rental_history')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setRentalHistory(data);
+    }
+  };
 
   const fetchEquipments = async () => {
     setIsLoading(true);
@@ -156,7 +181,7 @@ export default function RentalEquipments() {
       cost: formData.get("cost") as string,
       location: formData.get("location") as string,
       status: formData.get("status") as "Available" | "Busy",
-      holder: formData.get("holder") as string || "-",
+      holder: "-",
       remark: formData.get("remark") as string,
     };
     
@@ -199,6 +224,64 @@ export default function RentalEquipments() {
     }
   };
 
+  const handleRentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!rentingEquip) return;
+    const formData = new FormData(e.currentTarget);
+    const holder = formData.get("holder") as string;
+    const date = new Date().toISOString().split('T')[0];
+
+    const { error: equipError } = await supabase
+      .from('rental_equipments')
+      .update({ status: 'Busy', holder: holder })
+      .eq('asset_id', rentingEquip.assetId);
+
+    if (equipError) {
+      alert("Error updating equipment: " + equipError.message);
+      return;
+    }
+
+    await supabase.from('rental_history').insert([{
+      asset_id: rentingEquip.assetId,
+      model: rentingEquip.model,
+      action: 'Rental',
+      holder: holder,
+      date: date
+    }]);
+
+    await fetchEquipments();
+    await fetchHistory();
+    setRentingEquip(null);
+  };
+
+  const handleReturnSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!returningEquip) return;
+    const date = new Date().toISOString().split('T')[0];
+
+    const { error: equipError } = await supabase
+      .from('rental_equipments')
+      .update({ status: 'Available', holder: '-' })
+      .eq('asset_id', returningEquip.assetId);
+
+    if (equipError) {
+      alert("Error returning equipment: " + equipError.message);
+      return;
+    }
+
+    await supabase.from('rental_history').insert([{
+      asset_id: returningEquip.assetId,
+      model: returningEquip.model,
+      action: 'Return',
+      holder: returningEquip.holder,
+      date: date
+    }]);
+
+    await fetchEquipments();
+    await fetchHistory();
+    setReturningEquip(null);
+  };
+
   return (
     <div className="max-w-7xl mx-auto pb-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
@@ -210,8 +293,15 @@ export default function RentalEquipments() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3 w-full sm:w-auto"
+          className="flex flex-wrap items-center gap-3 w-full sm:w-auto"
         >
+          <button
+            onClick={() => setIsHistoryModalOpen(true)}
+            className="flex-1 sm:flex-none bg-app-surface border border-app-border hover:bg-app-bg text-app-text px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95"
+          >
+            <History className="w-5 h-5 text-purple-400" />
+            <span>Rental History</span>
+          </button>
           {isAdmin && (
             <button
               onClick={handleExport}
@@ -248,7 +338,6 @@ export default function RentalEquipments() {
                 <th className="p-4 font-bold">Storage</th>
                 <th className="p-4 font-bold">Status</th>
                 <th className="p-4 font-bold">Holder</th>
-                <th className="p-4 font-bold">Warranty</th>
                 <th className="p-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
@@ -261,59 +350,74 @@ export default function RentalEquipments() {
                   key={item.assetId}
                   className="hover:bg-app-bg/50 transition-colors group"
                 >
-                  <td className="p-4 text-sm font-bold font-mono text-blue-500">{item.assetId}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-2 text-sm font-bold font-mono text-blue-500">{item.assetId}</td>
+                  <td className="px-4 py-2">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-app-bg border border-app-border rounded-xl text-app-muted group-hover:text-emerald-400 group-hover:scale-110 transition-all">
                         <Package className="w-5 h-5" />
                       </div>
                       <div>
                         <p className="font-bold text-sm text-app-text">{item.model}</p>
-                        <p className="text-[10px] text-app-muted font-bold uppercase mt-0.5">SN: {item.serialNo}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-2">
                     <div className="flex items-center gap-1.5 text-xs text-app-muted font-bold uppercase">
                       <MapPin className="w-3.5 h-3.5 text-blue-400" />
                       {item.location}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-2">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border ${
                       item.status === "Available" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                     }`}>
                       {item.status.toUpperCase()}
                     </span>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-2">
                     <div className="flex items-center gap-1.5 text-xs text-app-text font-bold">
                       <User className="w-3.5 h-3.5 text-app-muted" />
                       {item.holder}
                     </div>
                   </td>
-                  <td className="p-4 text-xs text-app-muted font-bold">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 opacity-50" />
-                      {item.warranty}
-                    </div>
-                  </td>
-                  <td className="p-4 text-right">
+                  <td className="px-4 py-2 text-right">
                     <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => checkPin('edit', item)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-app-text hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all font-bold border border-app-border hover:border-blue-500/20"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Update
-                      </button>
-                      <button 
-                        onClick={() => checkPin('delete', item)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-app-text hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold border border-app-border hover:border-red-500/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
+                      {item.status === 'Available' ? (
+                        <button 
+                          onClick={() => setRentingEquip(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400 hover:text-white hover:bg-blue-500 rounded-xl transition-all font-bold border border-blue-500/20 hover:border-transparent shadow-sm"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Rental
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => setReturningEquip(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-emerald-400 hover:text-white hover:bg-emerald-500 rounded-xl transition-all font-bold border border-emerald-500/20 hover:border-transparent shadow-sm"
+                        >
+                          <LogIn className="w-4 h-4" />
+                          Return
+                        </button>
+                      )}
+
+                      {isAdmin && (
+                        <>
+                          <button 
+                            onClick={() => checkPin('edit', item)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-app-text hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all font-bold border border-app-border hover:border-blue-500/20"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Update
+                          </button>
+                          <button 
+                            onClick={() => checkPin('delete', item)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-app-text hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold border border-app-border hover:border-red-500/20"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </motion.tr>
@@ -356,15 +460,17 @@ export default function RentalEquipments() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-app-muted mb-1">Status</label>
-                      <select defaultValue={editingEquip?.status} name="status" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500">
+                      <select defaultValue={editingEquip?.status || "Available"} name="status" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500">
                         <option value="Available">Available</option>
                         <option value="Busy">Busy</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-bold text-app-muted mb-1">Holder</label>
-                      <input defaultValue={editingEquip?.holder} name="holder" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500" placeholder="User Name (Optional)" />
-                    </div>
+                    {editingEquip && (
+                      <div>
+                        <label className="block text-sm font-bold text-app-muted mb-1">Holder</label>
+                        <input defaultValue={editingEquip?.holder} name="holder" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500" placeholder="User Name (Optional)" />
+                      </div>
+                    )}
                     
                     <div className="sm:col-span-2 border-t border-app-border pt-4 mt-2">
                       <h3 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2 uppercase tracking-widest"><CreditCard className="w-4 h-4 text-blue-400" /> Financial & Warranty</h3>
@@ -395,6 +501,112 @@ export default function RentalEquipments() {
               <div className="flex justify-end gap-3 p-4 border-t border-app-border shrink-0 bg-app-surface/50">
                 <button type="button" onClick={() => { setIsAddModalOpen(false); setEditingEquip(null); }} className="px-6 py-2.5 text-sm font-bold text-app-muted hover:text-app-text transition-colors">Cancel</button>
                 <button form="equip-form" type="submit" className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 active:scale-95">{editingEquip ? "Update Equipment" : "Add Equipment"}</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Rent Modal */}
+      <AnimatePresence>
+        {rentingEquip && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-app-surface border border-app-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
+              <h2 className="text-xl font-bold text-app-text mb-4 uppercase flex items-center gap-2"><LogOut className="w-5 h-5 text-blue-500" /> Rent Equipment</h2>
+              <form onSubmit={handleRentSubmit} className="space-y-4">
+                <div className="bg-app-bg p-3 rounded-xl border border-app-border">
+                  <p className="text-xs text-app-muted font-bold uppercase mb-1">Item / Model</p>
+                  <p className="text-sm text-app-text font-bold">{rentingEquip.model} <span className="text-blue-400">({rentingEquip.assetId})</span></p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-app-muted mb-1 uppercase">Date</label>
+                  <input type="text" readOnly value={new Date().toLocaleDateString()} className="w-full bg-app-bg/50 border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none opacity-70" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-app-muted mb-1 uppercase">Holder Name</label>
+                  <input required name="holder" type="text" autoFocus className="w-full bg-app-bg border border-blue-500/30 rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="e.g. John Doe" />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setRentingEquip(null)} className="flex-1 py-2.5 px-4 rounded-xl font-bold text-app-muted hover:bg-app-bg transition-colors">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 px-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20">Confirm Rent</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Return Modal */}
+      <AnimatePresence>
+        {returningEquip && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-app-surface border border-app-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
+              <h2 className="text-xl font-bold text-app-text mb-4 uppercase flex items-center gap-2"><LogIn className="w-5 h-5 text-emerald-500" /> Return Equipment</h2>
+              <form onSubmit={handleReturnSubmit} className="space-y-4">
+                <div className="bg-app-bg p-3 rounded-xl border border-app-border">
+                  <p className="text-xs text-app-muted font-bold uppercase mb-1">Item / Model</p>
+                  <p className="text-sm text-app-text font-bold">{returningEquip.model} <span className="text-emerald-400">({returningEquip.assetId})</span></p>
+                </div>
+                <div className="bg-app-bg p-3 rounded-xl border border-app-border">
+                  <p className="text-xs text-app-muted font-bold uppercase mb-1">Returning By (Holder)</p>
+                  <p className="text-sm text-app-text font-bold">{returningEquip.holder}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-app-muted mb-1 uppercase">Date</label>
+                  <input type="text" readOnly value={new Date().toLocaleDateString()} className="w-full bg-app-bg/50 border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none opacity-70" />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setReturningEquip(null)} className="flex-1 py-2.5 px-4 rounded-xl font-bold text-app-muted hover:bg-app-bg transition-colors">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 px-4 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20">Confirm Return</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* History Modal */}
+      <AnimatePresence>
+        {isHistoryModalOpen && (
+          <div className="fixed inset-0 z-[50] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-app-surface border border-app-border rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+              <div className="flex justify-between items-center p-6 border-b border-app-border shrink-0">
+                <h2 className="text-xl font-bold text-app-text uppercase tracking-tight flex items-center gap-2"><History className="w-5 h-5 text-purple-400" /> Rental History</h2>
+                <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 text-app-muted hover:text-app-text bg-app-bg border border-app-border rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-0 overflow-y-auto flex-1">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-app-surface z-10">
+                    <tr className="bg-app-bg/80 backdrop-blur-md text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border">
+                      <th className="p-4 font-bold">Date</th>
+                      <th className="p-4 font-bold">Action</th>
+                      <th className="p-4 font-bold">Asset ID</th>
+                      <th className="p-4 font-bold">Model</th>
+                      <th className="p-4 font-bold">Holder</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-app-border">
+                    {rentalHistory.length > 0 ? rentalHistory.map((hist, i) => (
+                      <tr key={hist.id || i} className="hover:bg-app-bg/50 transition-colors">
+                        <td className="p-4 text-xs font-bold text-app-muted">{hist.date}</td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                            hist.action === 'Rental' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {hist.action.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="p-4 text-xs font-mono font-bold text-app-text">{hist.asset_id}</td>
+                        <td className="p-4 text-xs font-bold text-app-text">{hist.model}</td>
+                        <td className="p-4 text-xs font-bold text-app-text">{hist.holder}</td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-app-muted text-sm font-bold">No rental history found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </motion.div>
           </div>
