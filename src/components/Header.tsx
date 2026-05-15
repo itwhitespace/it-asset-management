@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Header() {
@@ -24,12 +24,6 @@ export default function Header() {
   return (
     <header className="h-16 border-b border-app-border bg-app-bg/50 backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 w-full">
       <div className="flex-1 min-w-0 max-w-xs sm:max-w-xl relative ml-10 lg:ml-0">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
-        <input
-          type="text"
-          placeholder="Search..."
-          className="w-full bg-app-surface/50 border border-app-border rounded-full py-1.5 pl-9 pr-4 text-xs text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-        />
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-2 flex-shrink-0">

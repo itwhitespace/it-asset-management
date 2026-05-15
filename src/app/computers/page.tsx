@@ -426,8 +426,14 @@ export default function Computers() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2 text-[11px] text-app-text font-medium bg-app-bg border border-app-border px-2 py-1 rounded-lg w-fit">
-                      <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                    <div className={`flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                      comp.company === 'Whitespace Partners' 
+                        ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' 
+                        : comp.company === 'Whitespace Connect'
+                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                        : 'bg-app-bg text-app-text border-app-border'
+                    }`}>
+                      <Building2 className="w-3.5 h-3.5" />
                       {comp.company}
                     </div>
                   </td>
