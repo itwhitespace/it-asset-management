@@ -24,7 +24,7 @@ export default function Computers() {
   const [pendingAction, setPendingAction] = useState<{ type: 'add' | 'edit' | 'delete', data?: any } | null>(null);
 
   const handleExport = () => {
-    exportToExcel(computers, "IT-Assets-Computers");
+    exportToExcel(filteredComputers, "IT-Assets-Computers");
   };
 
   const checkPin = (type: 'add' | 'edit' | 'delete', data?: any) => {
@@ -59,11 +59,16 @@ export default function Computers() {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<keyof Computer | "All">("All");
+  const [selectedCompany, setSelectedCompany] = useState<"All" | "Whitespace Partners" | "Whitespace Connect">("All");
 
   // Memoized filtered and sorted computers
   const filteredComputers = useMemo(() => {
     return computers
       .filter(comp => {
+        if (selectedCompany !== "All" && comp.company !== selectedCompany) {
+          return false;
+        }
+
         if (!searchQuery) return true;
         
         const searchLower = searchQuery.toLowerCase();
@@ -82,7 +87,7 @@ export default function Computers() {
         return value.includes(searchLower);
       })
       .sort((a, b) => a.user.localeCompare(b.user));
-  }, [computers, searchQuery, filterCategory]);
+  }, [computers, searchQuery, filterCategory, selectedCompany]);
 
   // Fetch from Supabase on mount
   useEffect(() => {
@@ -360,34 +365,71 @@ export default function Computers() {
         transition={{ delay: 0.1 }}
         className="bg-app-surface border border-app-border rounded-2xl overflow-hidden shadow-sm"
       >
-        <div className="p-4 border-b border-app-border flex flex-col md:flex-row gap-4 justify-between bg-app-surface/50">
-          <div className="relative max-w-md w-full">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
-            <input
-              type="text"
-              placeholder={filterCategory === "All" ? "Search all fields..." : `Search in ${filterCategory}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-app-bg border border-app-border rounded-xl py-2 pl-10 pr-4 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-            />
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter className="w-4 h-4 text-app-muted absolute ml-3 pointer-events-none" />
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value as any)}
-              className="bg-app-bg border border-app-border rounded-xl py-2 pl-9 pr-4 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none cursor-pointer w-full md:w-48 font-bold"
+        <div className="p-4 border-b border-app-border flex flex-col gap-4 bg-app-surface/50">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setSelectedCompany('All')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                selectedCompany === 'All'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 border border-blue-500'
+                  : 'bg-app-bg text-app-muted border border-app-border hover:text-app-text hover:border-blue-500/30'
+              }`}
             >
-              <option value="All">Search All Fields</option>
-              <option value="user">Search by User</option>
-              <option value="model">Search by Model</option>
-              <option value="id">Search by Device ID</option>
-              <option value="company">Search by Company</option>
-              <option value="department">Search by Department</option>
-              <option value="serialNo">Search by Serial No.</option>
-              <option value="os">Search by OS</option>
-              <option value="status">Search by Status</option>
-            </select>
+              <Building2 className="w-4 h-4" />
+              All
+            </button>
+            <button
+              onClick={() => setSelectedCompany('Whitespace Partners')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                selectedCompany === 'Whitespace Partners'
+                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-lg shadow-purple-500/10'
+                  : 'bg-app-bg text-app-muted border border-app-border hover:text-purple-400 hover:border-purple-500/30'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Whitespace Partners
+            </button>
+            <button
+              onClick={() => setSelectedCompany('Whitespace Connect')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                selectedCompany === 'Whitespace Connect'
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10'
+                  : 'bg-app-bg text-app-muted border border-app-border hover:text-amber-400 hover:border-amber-500/30'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Whitespace Connect
+            </button>
+          </div>
+          <div className="flex flex-col md:flex-row gap-4 justify-between">
+            <div className="relative max-w-md w-full">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
+              <input
+                type="text"
+                placeholder={filterCategory === "All" ? "Search all fields..." : `Search in ${filterCategory}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-app-bg border border-app-border rounded-xl py-2 pl-10 pr-4 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Filter className="w-4 h-4 text-app-muted absolute ml-3 pointer-events-none" />
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value as any)}
+                className="bg-app-bg border border-app-border rounded-xl py-2 pl-9 pr-4 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none cursor-pointer w-full md:w-48 font-bold"
+              >
+                <option value="All">Search All Fields</option>
+                <option value="user">Search by User</option>
+                <option value="model">Search by Model</option>
+                <option value="id">Search by Device ID</option>
+                <option value="company">Search by Company</option>
+                <option value="department">Search by Department</option>
+                <option value="serialNo">Search by Serial No.</option>
+                <option value="os">Search by OS</option>
+                <option value="status">Search by Status</option>
+              </select>
+            </div>
           </div>
         </div>
 
