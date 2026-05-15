@@ -63,6 +63,30 @@ export default function RentalEquipments() {
     setIsLoading(false);
   };
 
+  const getNextAssetId = () => {
+    if (equipments.length === 0) return "EQ-101";
+    
+    const eqNumbers = equipments
+      .map(eq => {
+        const match = eq.assetId.match(/EQ-(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      })
+      .filter(num => num > 0);
+      
+    if (eqNumbers.length === 0) return "EQ-101";
+    
+    const maxNum = Math.max(...eqNumbers);
+    return `EQ-${maxNum + 1}`;
+  };
+
+  const sortedEquipments = [...equipments].sort((a, b) => {
+    const numA = parseInt(a.assetId.replace(/\D/g, '')) || 0;
+    const numB = parseInt(b.assetId.replace(/\D/g, '')) || 0;
+    
+    if (numA !== numB) return numA - numB;
+    return a.assetId.localeCompare(b.assetId);
+  });
+
   const mapToDB = (equip: RentalEquipment) => ({
     asset_id: equip.assetId,
     model: equip.model,
@@ -227,7 +251,7 @@ export default function RentalEquipments() {
               </tr>
             </thead>
             <tbody className="divide-y divide-app-border">
-              {equipments.map((item, i) => (
+              {sortedEquipments.map((item, i) => (
                 <motion.tr
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -312,8 +336,8 @@ export default function RentalEquipments() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {!editingEquip && (
                       <div>
-                        <label className="block text-sm font-bold text-app-muted mb-1">Asset ID</label>
-                        <input required name="assetId" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. EQ-101" />
+                        <label className="block text-sm font-bold text-app-muted mb-1">Asset ID (Auto-generated)</label>
+                        <input required name="assetId" type="text" defaultValue={getNextAssetId()} readOnly className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500 opacity-70 cursor-not-allowed font-mono font-bold text-blue-400" />
                       </div>
                     )}
                     <div className={editingEquip ? "sm:col-span-2" : ""}>

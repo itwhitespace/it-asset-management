@@ -8,14 +8,32 @@ import StatCard from "@/components/StatCard";
 import { Software } from "@/data/software";
 import { supabase } from "@/lib/supabase";
 
-const months = [
-  "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26", "Mar-26",
-  "Apr-26", "May-26", "Jun-26", "Jul-26", "Aug-26", "Sep-26"
-];
+const getMonthsForRange = (range: string) => {
+  if (range === "2025-2026") {
+    return [
+      "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26", "Mar-26",
+      "Apr-26", "May-26", "Jun-26", "Jul-26", "Aug-26", "Sep-26"
+    ];
+  } else if (range === "2026-2027") {
+    return [
+      "Oct-26", "Nov-26", "Dec-26", "Jan-27", "Feb-27", "Mar-27",
+      "Apr-27", "May-27", "Jun-27", "Jul-27", "Aug-27", "Sep-27"
+    ];
+  } else if (range === "2027-2028") {
+    return [
+      "Oct-27", "Nov-27", "Dec-27", "Jan-28", "Feb-28", "Mar-28",
+      "Apr-28", "May-28", "Jun-28", "Jul-28", "Aug-28", "Sep-28"
+    ];
+  }
+  return [];
+};
 
 export default function Expenses() {
   const [softwareList, setSoftwareList] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [yearRange, setYearRange] = useState("2025-2026");
+
+  const months = getMonthsForRange(yearRange);
 
   useEffect(() => {
     fetchSoftware();
@@ -95,10 +113,25 @@ export default function Expenses() {
 
   return (
     <div className="max-w-[1500px] mx-auto pb-20 px-4">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-3xl font-bold text-app-text uppercase tracking-tight">Software Expenses</h1>
-        <p className="text-app-muted mt-2">Financial overview and renewal projection for all software assets.</p>
-      </motion.div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-3xl font-bold text-app-text uppercase tracking-tight">Software Expenses</h1>
+          <p className="text-app-muted mt-2">Financial overview and renewal projection for all software assets.</p>
+        </motion.div>
+        
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 w-full sm:w-auto">
+          <label className="text-sm font-bold text-app-muted uppercase tracking-widest hidden sm:block">Fiscal Year:</label>
+          <select 
+            value={yearRange}
+            onChange={(e) => setYearRange(e.target.value)}
+            className="w-full sm:w-auto bg-app-surface border border-app-border rounded-xl px-4 py-2.5 text-sm font-bold text-app-text focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+          >
+            <option value="2025-2026">OCT 2025 - SEP 2026</option>
+            <option value="2026-2027">OCT 2026 - SEP 2027</option>
+            <option value="2027-2028">OCT 2027 - SEP 2028</option>
+          </select>
+        </motion.div>
+      </div>
 
       {/* Stat Cards at the Top */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -173,15 +206,15 @@ export default function Expenses() {
                   ))}
 
                   {/* Category Total */}
-                  <tr className="bg-purple-500/5 text-purple-400 font-black border-t border-app-border">
-                    <td className="p-4 sticky left-0 bg-app-bg z-10 border-r border-app-border uppercase tracking-widest">TOTAL {type}</td>
-                    <td className="p-4 border-r border-app-border"></td>
+                  <tr className="bg-purple-500/20 text-purple-300 font-black border-t-2 border-purple-500/30">
+                    <td className="p-4 sticky left-0 bg-app-surface z-10 border-r border-purple-500/30 uppercase tracking-widest text-purple-400">TOTAL {type}</td>
+                    <td className="p-4 border-r border-purple-500/30"></td>
                     {months.map(month => (
-                      <td key={month} className="p-1 text-center border-r border-app-border">
+                      <td key={month} className="p-1 text-center border-r border-purple-500/30 text-purple-400">
                         {formatNumber(calculateCategoryMonthTotal(type, month))}
                       </td>
                     ))}
-                    <td className="p-4 text-right bg-purple-500/10">
+                    <td className="p-4 text-right bg-purple-500/30 text-purple-300">
                       {formatNumber(calculateCategoryTotal(type))}
                     </td>
                   </tr>
@@ -191,18 +224,18 @@ export default function Expenses() {
 
             {/* Grand Total Footer */}
             <tfoot>
-              <tr className="bg-blue-600/10 text-blue-500 font-black text-xs uppercase border-t-2 border-app-border">
-                <td className="p-5 sticky left-0 bg-app-bg z-10 border-r border-app-border tracking-widest">GRAND TOTAL</td>
-                <td className="p-5 border-r border-app-border"></td>
+              <tr className="bg-blue-600 text-white font-black text-sm uppercase border-t-4 border-blue-800 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]">
+                <td className="p-5 sticky left-0 bg-blue-700 z-10 border-r border-blue-500 tracking-widest shadow-[4px_0_10px_rgba(0,0,0,0.1)]">GRAND TOTAL</td>
+                <td className="p-5 border-r border-blue-500"></td>
                 {months.map(month => {
                   const monthTotal = softwareList.reduce((acc, s) => acc + getMonthlyCost(s, month), 0);
                   return (
-                    <td key={month} className="p-2 text-center border-r border-app-border">
+                    <td key={month} className="p-2 text-center border-r border-blue-500">
                       {formatNumber(monthTotal)}
                     </td>
                   );
                 })}
-                <td className="p-5 text-right bg-blue-600/20 text-blue-600">
+                <td className="p-5 text-right bg-blue-800 text-white text-base">
                   {formatNumber(grandTotal)}
                 </td>
               </tr>

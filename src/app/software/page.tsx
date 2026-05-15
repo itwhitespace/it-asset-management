@@ -129,7 +129,7 @@ export default function Software() {
     sw.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sw.detail.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sw.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const viewingSoftware = softwareList.find(s => s.id === viewingSoftwareId) || null;
   const deletingSoftware = softwareList.find(s => s.id === deletingSoftwareId) || null;
@@ -262,16 +262,14 @@ export default function Software() {
 
   const FormFields = ({ def }: { def?: SoftwareType }) => (
     <div className="grid grid-cols-2 gap-4">
-      <div className={def ? "col-span-2" : ""}>
+      <div>
         <label className="block text-sm font-bold text-app-muted mb-1">Software Name</label>
         <input required defaultValue={def?.name} name="name" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500" />
       </div>
-      {!def && (
-        <div>
-          <label className="block text-sm font-bold text-app-muted mb-1">License ID</label>
-          <input required name="id" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500" />
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-bold text-app-muted mb-1">License ID</label>
+        <input required defaultValue={def?.id} readOnly={!!def} name="id" type="text" className={`w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500 ${def ? 'opacity-50 cursor-not-allowed' : ''}`} />
+      </div>
       <div className="col-span-2">
         <label className="block text-sm font-bold text-app-muted mb-1">Detail / Note</label>
         <input defaultValue={def?.detail} name="detail" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500" />
@@ -336,22 +334,7 @@ export default function Software() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-3"
         >
-          <div className="flex bg-app-surface border border-app-border rounded-xl p-1 mr-2">
-            <button 
-              onClick={() => setViewMode("card")}
-              className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-app-muted hover:text-app-text'}`}
-              title="Card View"
-            >
-              <LayoutGrid className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-app-muted hover:text-app-text'}`}
-              title="Table View"
-            >
-              <List className="w-5 h-5" />
-            </button>
-          </div>
+
           <button
             onClick={handleExport}
             className="bg-app-surface border border-app-border hover:bg-app-bg text-app-text px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95"
@@ -369,16 +352,34 @@ export default function Software() {
         </motion.div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md w-full mb-8">
-        <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
-        <input
-          type="text"
-          placeholder="Search by Name, ID, Type..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-app-surface border border-app-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
-        />
+      {/* Search & View Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+        <div className="relative max-w-md w-full">
+          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
+          <input
+            type="text"
+            placeholder="Search by Name, ID, Type..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-app-surface border border-app-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+          />
+        </div>
+        <div className="flex bg-app-surface border border-app-border rounded-xl p-1 w-full sm:w-auto">
+          <button 
+            onClick={() => setViewMode("card")}
+            className={`flex-1 sm:flex-none p-1.5 rounded-lg transition-all flex justify-center ${viewMode === 'card' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-app-muted hover:text-app-text'}`}
+            title="Card View"
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setViewMode("table")}
+            className={`flex-1 sm:flex-none p-1.5 rounded-lg transition-all flex justify-center ${viewMode === 'table' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-app-muted hover:text-app-text'}`}
+            title="Table View"
+          >
+            <List className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {viewMode === "card" ? (
@@ -645,7 +646,7 @@ export default function Software() {
               </div>
               
               <div className="p-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div className="bg-app-bg border border-app-border p-5 rounded-2xl flex items-center gap-4">
                     <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl"><Users className="w-5 h-5" /></div>
                     <div>
@@ -670,7 +671,21 @@ export default function Software() {
                       <p className="text-xl font-black text-app-text">{viewingSoftware.status.toUpperCase()}</p>
                     </div>
                   </div>
+                  <div className="bg-app-bg border border-app-border p-5 rounded-2xl flex items-center gap-4">
+                    <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl"><AlertTriangle className="w-5 h-5" /></div>
+                    <div>
+                      <p className="text-[10px] text-app-muted font-black uppercase tracking-widest">Expiry Date</p>
+                      <p className="text-xl font-black text-app-text">{viewingSoftware.expiry}</p>
+                    </div>
+                  </div>
                 </div>
+
+                {viewingSoftware.detail && (
+                  <div className="bg-app-bg border border-app-border p-4 rounded-2xl mb-8">
+                    <p className="text-[10px] text-app-muted font-black uppercase tracking-widest mb-1">Detail / Note</p>
+                    <p className="text-sm font-medium text-app-text">{viewingSoftware.detail}</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2">
