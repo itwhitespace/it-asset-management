@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
   const [theme, setTheme] = useState("dark");
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("app-theme") || "dark";
@@ -47,11 +49,11 @@ export default function Header() {
 
         <div className="flex items-center gap-2 sm:gap-3 border-l border-app-border pl-2 sm:pl-4">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 flex items-center justify-center text-sm font-bold text-white shadow-lg flex-shrink-0">
-            IT
+            {isAdmin ? "AD" : "US"}
           </div>
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-app-text leading-none">Admin User</p>
-            <p className="text-[10px] text-app-muted mt-1 uppercase font-bold tracking-wider">IT Department</p>
+            <p className="text-sm font-medium text-app-text leading-none">{isAdmin ? "Admin User" : "User"}</p>
+            <p className="text-[10px] text-app-muted mt-1 uppercase font-bold tracking-wider">{isAdmin ? "IT Department" : "Staff"}</p>
           </div>
         </div>
       </div>

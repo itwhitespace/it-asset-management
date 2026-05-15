@@ -626,7 +626,9 @@ export default function Computers() {
                       <div className="flex justify-between"><span className="text-app-muted">OS:</span><span className="text-app-text font-bold">{viewingDevice.os}</span></div>
                       <div className="flex flex-col gap-1 mt-2">
                         <span className="text-[10px] text-app-muted font-bold uppercase">OS Key:</span>
-                        <code className="text-xs bg-app-bg p-3 rounded-xl border border-app-border text-purple-500 font-mono break-all font-bold tracking-tight">{viewingDevice.osKey}</code>
+                        <code className="text-xs bg-app-bg p-3 rounded-xl border border-app-border text-purple-500 font-mono break-all font-bold tracking-tight">
+                          {viewingDevice.osKey ? (isAdmin ? viewingDevice.osKey : viewingDevice.osKey.length > 4 ? viewingDevice.osKey.slice(0, -4) + "****" : "****") : "-"}
+                        </code>
                       </div>
                     </div>
                   </div>

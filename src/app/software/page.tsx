@@ -109,6 +109,22 @@ export default function Software() {
     setIsLoading(false);
   };
 
+  const getNextSoftwareId = () => {
+    if (softwareList.length === 0) return "SW-101";
+    
+    const swNumbers = softwareList
+      .map(sw => {
+        const match = sw.id.match(/SW-(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      })
+      .filter(num => num > 0);
+      
+    if (swNumbers.length === 0) return "SW-101";
+    
+    const maxNum = Math.max(...swNumbers);
+    return `SW-${maxNum + 1}`;
+  };
+
   const mapToDB = (sw: SoftwareType) => ({
     id: sw.id,
     name: sw.name,
@@ -267,8 +283,8 @@ export default function Software() {
         <input required defaultValue={def?.name} name="name" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500" />
       </div>
       <div>
-        <label className="block text-sm font-bold text-app-muted mb-1">License ID</label>
-        <input required defaultValue={def?.id} readOnly={!!def} name="id" type="text" className={`w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500 ${def ? 'opacity-50 cursor-not-allowed' : ''}`} />
+        <label className="block text-sm font-bold text-app-muted mb-1">{def ? "License ID" : "License ID (Auto-generated)"}</label>
+        <input required defaultValue={def ? def.id : getNextSoftwareId()} readOnly name="id" type="text" className={`w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500 opacity-50 cursor-not-allowed ${!def ? 'font-mono font-bold text-purple-400' : ''}`} />
       </div>
       <div className="col-span-2">
         <label className="block text-sm font-bold text-app-muted mb-1">Detail / Note</label>
