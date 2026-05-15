@@ -1,28 +1,19 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import DynamicClientLayout from "@/components/DynamicClientLayout";
-
-const inter = Inter({ subsets: ["latin"] });
+import ClientLayout from "@/components/ClientLayout";
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: "Whitespace Asset - IT Management",
-  description: "Advanced IT Asset Management System for Whitespace.",
-};
-
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className={`${inter.className} min-h-full bg-app-bg`}>
-        <DynamicClientLayout>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-app-bg text-app-text antialiased transition-colors duration-300">
+        <ClientLayout>
           {children}
-        </DynamicClientLayout>
+        </ClientLayout>
       </body>
     </html>
   );
