@@ -331,6 +331,26 @@ export default function Software() {
     </div>
   );
 
+  const getRemainingText = (expiryStr: string) => {
+    if (!expiryStr) return { text: "-", className: "text-app-muted" };
+    const expiryDate = new Date(expiryStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    expiryDate.setHours(0, 0, 0, 0);
+    const diffTime = expiryDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { text: `Expired`, className: "text-red-400 font-bold" };
+    } else if (diffDays === 0) {
+      return { text: "Today", className: "text-amber-400 font-bold" };
+    } else if (diffDays <= 30) {
+      return { text: `${diffDays} Days`, className: "text-amber-400 font-bold" };
+    } else {
+      return { text: `${diffDays} Days`, className: "text-app-text font-bold" };
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto pb-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
@@ -463,6 +483,10 @@ export default function Software() {
                     <span className="text-app-muted block font-bold uppercase text-[9px]">Next Renewal</span>
                     <span className="text-app-text font-bold">{software.expiry}</span>
                   </div>
+                  <div className="text-[11px] text-center">
+                    <span className="text-app-muted block font-bold uppercase text-[9px]">Remaining</span>
+                    <span className={getRemainingText(software.expiry).className}>{getRemainingText(software.expiry).text}</span>
+                  </div>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
                     software.status === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                     software.status === "Warning" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
@@ -490,6 +514,7 @@ export default function Software() {
                   <th className="p-4 font-bold">License</th>
                   <th className="p-4 font-bold">Usage</th>
                   <th className="p-4 font-bold">Expiry</th>
+                  <th className="p-4 font-bold">Remaining</th>
                   <th className="p-4 font-bold">Status</th>
                   <th className="p-4 font-bold text-right">Actions</th>
                 </tr>
@@ -528,6 +553,11 @@ export default function Software() {
                       </div>
                     </td>
                     <td className="p-4 text-xs font-bold text-app-text">{software.expiry}</td>
+                    <td className="p-4 text-xs">
+                      <span className={getRemainingText(software.expiry).className}>
+                        {getRemainingText(software.expiry).text}
+                      </span>
+                    </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${
                         software.status === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
