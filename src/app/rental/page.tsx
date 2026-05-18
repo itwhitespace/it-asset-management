@@ -34,6 +34,7 @@ type RentalHistory = {
 export default function RentalEquipments() {
   const [equipments, setEquipments] = useState<RentalEquipment[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [viewingEquip, setViewingEquip] = useState<RentalEquipment | null>(null);
   const [editingEquip, setEditingEquip] = useState<RentalEquipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAdmin, login } = useAuth();
@@ -400,6 +401,16 @@ export default function RentalEquipments() {
                         </button>
                       )}
 
+                      {!isAdmin && (
+                        <button 
+                          onClick={() => setViewingEquip(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-app-text hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all font-bold border border-app-border hover:border-blue-500/20 shadow-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </button>
+                      )}
+
                       {isAdmin && (
                         <>
                           <button 
@@ -607,6 +618,70 @@ export default function RentalEquipments() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* View Equipment Details Modal */}
+      <AnimatePresence>
+        {viewingEquip && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-app-surface border border-app-border rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col"
+            >
+              <div className="flex justify-between items-center p-6 border-b border-app-border">
+                <div>
+                  <h2 className="text-xl font-bold text-app-text uppercase tracking-tight">{viewingEquip.model}</h2>
+                  <p className="text-[10px] font-bold text-app-muted uppercase tracking-widest">{viewingEquip.assetId}</p>
+                </div>
+                <button onClick={() => setViewingEquip(null)} className="p-2 text-app-muted hover:text-app-text bg-app-bg border border-app-border rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 max-h-[75vh] overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-[10px] font-bold text-app-muted uppercase tracking-widest mb-4 border-b border-app-border pb-2">Equipment Info</h4>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between"><span className="text-app-muted">Asset ID:</span><span className="text-app-text font-mono font-bold">{viewingEquip.assetId}</span></div>
+                        <div className="flex justify-between"><span className="text-app-muted">Model:</span><span className="text-app-text font-bold">{viewingEquip.model}</span></div>
+                        <div className="flex justify-between"><span className="text-app-muted">Serial No.:</span><span className="text-app-text font-mono font-bold">{viewingEquip.serialNo}</span></div>
+                        <div className="flex justify-between"><span className="text-app-muted">Location Storage:</span><span className="text-app-text font-bold">{viewingEquip.location}</span></div>
+                        <div className="flex justify-between"><span className="text-app-muted">Status:</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            viewingEquip.status === "Available" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                            "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          }`}>{viewingEquip.status.toUpperCase()}</span>
+                        </div>
+                        <div className="flex justify-between"><span className="text-app-muted">Holder:</span><span className="text-app-text font-bold">{viewingEquip.holder}</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-[10px] font-bold text-app-muted uppercase tracking-widest mb-4 border-b border-app-border pb-2">Purchase & Warranty</h4>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between"><span className="text-app-muted">Purchase Date:</span><span className="text-app-text font-bold">{viewingEquip.purchaseDate}</span></div>
+                        <div className="flex justify-between"><span className="text-app-muted">Warranty Ends:</span><span className="text-emerald-500 font-bold">{viewingEquip.warranty}</span></div>
+                        <div className="flex justify-between"><span className="text-app-muted">Cost:</span><span className="text-app-text font-bold">฿{viewingEquip.cost}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-[10px] font-bold text-app-muted uppercase tracking-widest mb-4 border-b border-app-border pb-2">Remark</h4>
+                      <p className="text-sm text-app-text bg-app-bg p-3 rounded-xl border border-app-border min-h-[60px]">
+                        {viewingEquip.remark || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>

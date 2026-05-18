@@ -181,9 +181,11 @@ export default function Expenses() {
                   {/* Category Header Row */}
                   <tr className="bg-app-bg/80 font-black">
                     <td className="p-3 text-app-text sticky left-0 bg-app-bg z-10 border-r border-app-border uppercase tracking-widest text-[11px]">{type}</td>
-                    <td className="p-3 border-r border-app-border"></td>
-                    {months.map(m => <td key={m} className="p-3 border-r border-app-border"></td>)}
-                    <td className="p-3 bg-app-bg/30"></td>
+                    <td className="p-3 text-center text-app-muted border-r border-app-border text-[10px] tracking-widest uppercase">{type === 'Designer' ? 'SEATS' : ''}</td>
+                    {months.map(m => (
+                      <td key={m} className="p-1 text-center text-app-muted border-r border-app-border text-[10px] tracking-widest uppercase">{type === 'Designer' ? m : ''}</td>
+                    ))}
+                    <td className="p-3 text-right text-app-muted bg-app-bg/30 text-[10px] tracking-widest uppercase">{type === 'Designer' ? 'TOTAL/YEAR' : ''}</td>
                   </tr>
 
                   {/* Items */}

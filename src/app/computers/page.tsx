@@ -465,7 +465,7 @@ export default function Computers() {
                       </div>
                       <div>
                         <p className="font-bold text-sm text-app-text">{comp.model}</p>
-                        <p className="text-[10px] text-app-muted font-bold uppercase mt-0.5">{comp.id} • {comp.type}</p>
+                        <p className="text-[10px] text-app-muted font-bold uppercase mt-0.5">{comp.type} • {comp.cpu}</p>
                       </div>
                     </div>
                   </td>
