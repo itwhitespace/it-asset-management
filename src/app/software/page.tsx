@@ -92,16 +92,16 @@ export default function Software() {
       console.error("Error fetching software:", error);
     } else if (data) {
       const mapped: SoftwareType[] = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        detail: item.detail,
-        seats: item.seats,
-        used: item.used,
-        expiry: item.expiry,
-        status: item.status,
-        pricePerUnit: parseFloat(item.price_per_unit),
-        type: item.type,
-        licenseType: item.license_type,
+        id: item.id || "",
+        name: item.name || "",
+        detail: item.detail || "",
+        seats: item.seats || 0,
+        used: item.used || 0,
+        expiry: item.expiry || "",
+        status: item.status || "Active",
+        pricePerUnit: parseFloat(item.price_per_unit || "0"),
+        type: item.type || "Back office",
+        licenseType: item.license_type || "Yearly",
         assignedUsers: item.assigned_users || []
       }));
       setSoftwareList(mapped);
@@ -141,11 +141,11 @@ export default function Software() {
 
   // Filtered software list
   const filteredSoftware = softwareList.filter(sw => 
-    sw.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sw.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sw.detail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sw.type.toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => a.name.localeCompare(b.name));
+    (sw.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (sw.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (sw.detail || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (sw.type || "").toLowerCase().includes(searchQuery.toLowerCase())
+  ).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
   const viewingSoftware = softwareList.find(s => s.id === viewingSoftwareId) || null;
   const deletingSoftware = softwareList.find(s => s.id === deletingSoftwareId) || null;

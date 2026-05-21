@@ -75,18 +75,18 @@ export default function Computers() {
         
         if (filterCategory === "All") {
           return (
-            comp.id.toLowerCase().includes(searchLower) ||
-            comp.model.toLowerCase().includes(searchLower) ||
-            comp.user.toLowerCase().includes(searchLower) ||
-            comp.serialNo.toLowerCase().includes(searchLower) ||
-            comp.department.toLowerCase().includes(searchLower)
+            (comp.id || "").toLowerCase().includes(searchLower) ||
+            (comp.model || "").toLowerCase().includes(searchLower) ||
+            (comp.user || "").toLowerCase().includes(searchLower) ||
+            (comp.serialNo || "").toLowerCase().includes(searchLower) ||
+            (comp.department || "").toLowerCase().includes(searchLower)
           );
         }
         
         const value = String(comp[filterCategory] || "").toLowerCase();
         return value.includes(searchLower);
       })
-      .sort((a, b) => a.user.localeCompare(b.user));
+      .sort((a, b) => (a.user || "").localeCompare(b.user || ""));
   }, [computers, searchQuery, filterCategory, selectedCompany]);
 
   // Fetch from Supabase on mount
@@ -106,25 +106,25 @@ export default function Computers() {
     } else if (data) {
       // Map snake_case from DB to camelCase for UI
       const mapped: Computer[] = data.map(item => ({
-        id: item.id,
-        model: item.model,
-        user: item.user_name,
-        department: item.department,
-        company: item.company,
-        status: item.status,
-        type: item.type,
-        os: item.os,
-        osKey: item.os_key,
-        serialNo: item.serial_no,
-        macAddress: item.mac_address,
-        mainBoard: item.main_board,
-        cpu: item.cpu,
-        ram: item.ram,
-        gpu: item.gpu,
-        hdd: item.hdd,
-        warranty: item.warranty,
-        purchaseDate: item.purchase_date,
-        price: item.price
+        id: item.id || "",
+        model: item.model || "",
+        user: item.user_name || "Unassigned",
+        department: item.department || "",
+        company: item.company || "Whitespace Partners",
+        status: item.status || "Available",
+        type: item.type || "Laptop",
+        os: item.os || "",
+        osKey: item.os_key || "",
+        serialNo: item.serial_no || "",
+        macAddress: item.mac_address || "",
+        mainBoard: item.main_board || "",
+        cpu: item.cpu || "",
+        ram: item.ram || "",
+        gpu: item.gpu || "",
+        hdd: item.hdd || "",
+        warranty: item.warranty || "",
+        purchaseDate: item.purchase_date || "",
+        price: item.price || ""
       }));
       setComputers(mapped);
     }
