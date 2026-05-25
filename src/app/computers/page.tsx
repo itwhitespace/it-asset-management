@@ -77,6 +77,7 @@ export default function Computers() {
           return (
             (comp.id || "").toLowerCase().includes(searchLower) ||
             (comp.model || "").toLowerCase().includes(searchLower) ||
+            (comp.computerName || "").toLowerCase().includes(searchLower) ||
             (comp.user || "").toLowerCase().includes(searchLower) ||
             (comp.serialNo || "").toLowerCase().includes(searchLower) ||
             (comp.department || "").toLowerCase().includes(searchLower)
@@ -107,6 +108,7 @@ export default function Computers() {
       // Map snake_case from DB to camelCase for UI
       const mapped: Computer[] = data.map(item => ({
         id: item.id || "",
+        computerName: item.computer_name || "",
         model: item.model || "",
         user: item.user_name || "Unassigned",
         department: item.department || "",
@@ -133,6 +135,7 @@ export default function Computers() {
 
   const mapToDB = (comp: Computer) => ({
     id: comp.id,
+    computer_name: comp.computerName,
     model: comp.model,
     user_name: comp.user,
     department: comp.department,
@@ -158,6 +161,7 @@ export default function Computers() {
     const formData = new FormData(e.currentTarget);
     const newComputer: Computer = {
       id: formData.get("id") as string,
+      computerName: formData.get("computerName") as string,
       model: formData.get("model") as string,
       user: formData.get("user") as string || "Unassigned",
       department: formData.get("department") as string,
@@ -196,6 +200,7 @@ export default function Computers() {
     const formData = new FormData(e.currentTarget);
     const updatedComputer: Computer = {
       ...editingDevice,
+      computerName: formData.get("computerName") as string,
       model: formData.get("model") as string,
       user: formData.get("user") as string || "Unassigned",
       department: formData.get("department") as string,
@@ -253,6 +258,10 @@ export default function Computers() {
           <input required name="id" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. MAC-005" />
         </div>
       )}
+      <div>
+        <label className="block text-sm font-bold text-app-muted mb-1">Computer Name</label>
+        <input required defaultValue={def?.computerName} name="computerName" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. IT-NB-01" />
+      </div>
       <div>
         <label className="block text-sm font-bold text-app-muted mb-1">Model Name</label>
         <input required defaultValue={def?.model} name="model" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. MacBook Pro 14" />
@@ -324,7 +333,7 @@ export default function Computers() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto pb-10">
+    <div className="w-full max-w-[1600px] px-4 xl:px-8 mx-auto pb-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-3xl font-bold text-app-text">Computers</h1>
@@ -423,6 +432,7 @@ export default function Computers() {
               >
                 <option value="All">Search All Fields</option>
                 <option value="user">Search by User</option>
+                <option value="computerName">Search by Computer Name</option>
                 <option value="model">Search by Model</option>
                 <option value="id">Search by Device ID</option>
                 <option value="company">Search by Company</option>
@@ -441,6 +451,7 @@ export default function Computers() {
               <tr className="bg-app-bg/50 text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border">
                 <th className="p-4 font-bold whitespace-nowrap">Assigned To</th>
                 <th className="p-4 font-bold whitespace-nowrap">Device Info</th>
+                <th className="p-4 font-bold whitespace-nowrap">Computer Name</th>
                 <th className="p-4 font-bold whitespace-nowrap">Company</th>
                 <th className="p-4 font-bold whitespace-nowrap">Department</th>
                 <th className="p-4 font-bold whitespace-nowrap">OS</th>
@@ -469,6 +480,7 @@ export default function Computers() {
                       </div>
                     </div>
                   </td>
+                  <td className="p-4 text-sm text-app-text font-bold">{comp.computerName}</td>
                   <td className="p-4">
                     <div className={`flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full border ${
                       comp.company === 'Whitespace Partners' 
@@ -634,6 +646,7 @@ export default function Computers() {
                     <div>
                       <h4 className="text-[10px] font-bold text-app-muted uppercase tracking-widest mb-4 border-b border-app-border pb-2">Assignment Info</h4>
                       <div className="space-y-3 text-sm">
+                        <div className="flex justify-between"><span className="text-app-muted">Computer Name:</span><span className="text-app-text font-bold">{viewingDevice.computerName}</span></div>
                         <div className="flex justify-between"><span className="text-app-muted">User:</span><span className="text-app-text font-bold">{viewingDevice.user}</span></div>
                         <div className="flex justify-between"><span className="text-app-muted">Company:</span><span className="text-app-text font-bold">{viewingDevice.company}</span></div>
                         <div className="flex justify-between"><span className="text-app-muted">Department:</span><span className="text-app-text font-bold">{viewingDevice.department}</span></div>
