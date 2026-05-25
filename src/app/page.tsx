@@ -28,6 +28,7 @@ export default function Dashboard() {
       if (compRes.data) {
         setComputerList(compRes.data.map(item => ({
           id: item.id,
+          computerName: item.computer_name || "",
           model: item.model,
           user: item.user_name,
           department: item.department,
