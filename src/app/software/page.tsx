@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Filter, Box, X, Users, DollarSign, Trash2, UserPlus, Edit2, AlertTriangle, Download, LayoutGrid, List, Eye } from "lucide-react";
+import { Plus, Search, Filter, Box, X, Users, DollarSign, Trash2, UserPlus, Edit2, AlertTriangle, Download, LayoutGrid, List, Eye, Check } from "lucide-react";
 import { initialSoftware, Software as SoftwareType, AssignedUser } from "@/data/software";
 import PinModal from "@/components/PinModal";
 import { exportToExcel } from "@/utils/excel";
@@ -25,7 +25,13 @@ export default function Software() {
 
   // PIN Protection State
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{ type: 'add' | 'edit' | 'delete' | 'assign' | 'remove', data?: any } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ type: 'add' | 'edit' | 'delete' | 'assign' | 'remove' | 'edit_user', data?: any } | null>(null);
+
+  // Inline edit state for assigned users
+  const [editingUserEmail, setEditingUserEmail] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
 
   const handleExport = async () => {
     // Flatten assigned users for better excel view
@@ -44,13 +50,14 @@ export default function Software() {
     await exportToExcel(exportData, "IT-Assets-Software");
   };
 
-  const checkPin = (type: 'add' | 'edit' | 'delete' | 'assign' | 'remove', data?: any) => {
+  const checkPin = (type: 'add' | 'edit' | 'delete' | 'assign' | 'remove' | 'edit_user', data?: any) => {
     if (isAdmin) {
       if (type === 'add') setIsAddModalOpen(true);
       else if (type === 'edit') setEditingSoftware(data);
       else if (type === 'delete') setDeletingSoftwareId(data);
       else if (type === 'assign') performAssignUser(data);
       else if (type === 'remove') performRemoveUser(data);
+      else if (type === 'edit_user') performEditUser(data);
     } else {
       setPendingAction({ type, data });
       setIsPinModalOpen(true);
@@ -71,6 +78,8 @@ export default function Software() {
       performAssignUser(pendingAction.data);
     } else if (pendingAction.type === 'remove') {
       performRemoveUser(pendingAction.data);
+    } else if (pendingAction.type === 'edit_user') {
+      performEditUser(pendingAction.data);
     }
     setPendingAction(null);
   };
@@ -227,16 +236,24 @@ export default function Software() {
       email: formData.get("email") as string,
       department: formData.get("department") as string,
     };
+    if (viewingSoftware?.assignedUsers.some(u => u.email.toLowerCase() === newUser.email.toLowerCase())) {
+      alert("User with this email is already assigned to this software.");
+      return;
+    }
     checkPin('assign', { newUser, form: e.currentTarget });
   };
 
   const performAssignUser = async ({ newUser, form }: { newUser: AssignedUser, form: HTMLFormElement }) => {
     if (!viewingSoftware) return;
     
+    const updatedUsers = [...viewingSoftware.assignedUsers, newUser].sort((a, b) => 
+      (a.name || "").localeCompare(b.name || "")
+    );
+
     const updatedSoftware = {
       ...viewingSoftware,
       used: viewingSoftware.used + 1,
-      assignedUsers: [...viewingSoftware.assignedUsers, newUser]
+      assignedUsers: updatedUsers
     };
 
     const { error } = await supabase
@@ -258,10 +275,15 @@ export default function Software() {
 
   const performRemoveUser = async (emailToRemove: string) => {
     if (!viewingSoftware) return;
+    
+    const updatedUsers = viewingSoftware.assignedUsers
+      .filter(u => u.email !== emailToRemove)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
     const updatedSoftware = {
       ...viewingSoftware,
       used: Math.max(0, viewingSoftware.used - 1),
-      assignedUsers: viewingSoftware.assignedUsers.filter(u => u.email !== emailToRemove)
+      assignedUsers: updatedUsers
     };
 
     const { error } = await supabase
@@ -273,6 +295,69 @@ export default function Software() {
       alert("Error removing user: " + error.message);
     } else {
       await fetchSoftware();
+    }
+  };
+
+  const handleEditUserClick = (u: AssignedUser) => {
+    setEditingUserEmail(u.email);
+    setEditName(u.name);
+    setEditEmail(u.email);
+    setEditDepartment(u.department);
+  };
+
+  const handleSaveUserEdit = (oldEmail: string) => {
+    if (!editName.trim() || !editEmail.trim() || !editDepartment.trim()) {
+      alert("All fields are required.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editEmail)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (!viewingSoftware) return;
+
+    const emailExists = viewingSoftware.assignedUsers.some(
+      u => u.email.toLowerCase() === editEmail.toLowerCase() && u.email.toLowerCase() !== oldEmail.toLowerCase()
+    );
+    if (emailExists) {
+      alert("User with this email is already assigned to this software.");
+      return;
+    }
+
+    const updatedUser: AssignedUser = {
+      name: editName.trim(),
+      email: editEmail.trim(),
+      department: editDepartment.trim()
+    };
+
+    checkPin('edit_user', { oldEmail, updatedUser });
+  };
+
+  const performEditUser = async ({ oldEmail, updatedUser }: { oldEmail: string, updatedUser: AssignedUser }) => {
+    if (!viewingSoftware) return;
+
+    const updatedUsers = viewingSoftware.assignedUsers.map(u => 
+      u.email === oldEmail ? updatedUser : u
+    ).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+    const updatedSoftware = {
+      ...viewingSoftware,
+      assignedUsers: updatedUsers
+    };
+
+    const { error } = await supabase
+      .from('software')
+      .update(mapToDB(updatedSoftware))
+      .eq('id', viewingSoftware.id);
+
+    if (error) {
+      alert("Error updating user details: " + error.message);
+    } else {
+      await fetchSoftware();
+      setEditingUserEmail(null);
     }
   };
 
@@ -751,20 +836,93 @@ export default function Software() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-app-border/50">
-                            {viewingSoftware.assignedUsers.map((u, idx) => (
-                              <tr key={idx} className="hover:bg-app-surface/50 transition-colors">
-                                <td className="px-5 py-4">
-                                  <div className="font-bold text-app-text">{u.name}</div>
-                                  <div className="text-[11px] text-app-muted font-medium">{u.email}</div>
-                                </td>
-                                <td className="px-5 py-4 text-app-muted font-black text-[10px] uppercase tracking-tight">{u.department}</td>
-                                <td className="px-5 py-4 text-right">
-                                  <button onClick={() => handleRemoveUser(u.email)} className="p-2 text-app-muted hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                            {[...viewingSoftware.assignedUsers].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map((u, idx) => {
+                              const isEditing = editingUserEmail === u.email;
+                              return (
+                                <tr key={idx} className="hover:bg-app-surface/50 transition-colors">
+                                  <td className="px-5 py-4">
+                                    {isEditing ? (
+                                      <div className="space-y-2 max-w-xs">
+                                        <input
+                                          type="text"
+                                          value={editName}
+                                          onChange={(e) => setEditName(e.target.value)}
+                                          className="w-full bg-app-surface border border-app-border rounded-lg px-3 py-1.5 text-sm font-bold text-app-text focus:outline-none focus:border-purple-500"
+                                          placeholder="Full Name"
+                                          required
+                                        />
+                                        <input
+                                          type="email"
+                                          value={editEmail}
+                                          onChange={(e) => setEditEmail(e.target.value)}
+                                          className="w-full bg-app-surface border border-app-border rounded-lg px-3 py-1.5 text-xs text-app-text focus:outline-none focus:border-purple-500"
+                                          placeholder="Email"
+                                          required
+                                        />
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="font-bold text-app-text">{u.name}</div>
+                                        <div className="text-[11px] text-app-muted font-medium">{u.email}</div>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    {isEditing ? (
+                                      <input
+                                        type="text"
+                                        value={editDepartment}
+                                        onChange={(e) => setEditDepartment(e.target.value)}
+                                        className="w-full bg-app-surface border border-app-border rounded-lg px-3 py-1.5 text-xs uppercase text-app-text focus:outline-none focus:border-purple-500 max-w-[150px]"
+                                        placeholder="Department"
+                                        required
+                                      />
+                                    ) : (
+                                      <span className="text-app-muted font-black text-[10px] uppercase tracking-tight">{u.department}</span>
+                                    )}
+                                  </td>
+                                  <td className="px-5 py-4 text-right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {isEditing ? (
+                                        <>
+                                          <button 
+                                            onClick={() => handleSaveUserEdit(u.email)} 
+                                            className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all"
+                                            title="Save Changes"
+                                          >
+                                            <Check className="w-4 h-4" />
+                                          </button>
+                                          <button 
+                                            onClick={() => setEditingUserEmail(null)} 
+                                            className="p-2 text-app-muted hover:text-app-text hover:bg-app-bg border border-app-border rounded-xl transition-all"
+                                            title="Cancel"
+                                          >
+                                            <X className="w-4 h-4" />
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <button 
+                                            onClick={() => handleEditUserClick(u)} 
+                                            className="p-2 text-app-muted hover:text-purple-400 hover:bg-purple-500/10 rounded-xl transition-all"
+                                            title="Edit User"
+                                          >
+                                            <Edit2 className="w-4 h-4" />
+                                          </button>
+                                          <button 
+                                            onClick={() => handleRemoveUser(u.email)} 
+                                            className="p-2 text-app-muted hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                                            title="Remove User"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
