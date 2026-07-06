@@ -191,6 +191,7 @@ export default function Software() {
     const formData = new FormData(e.currentTarget);
     const updatedSoftware: SoftwareType = {
       ...editingSoftware,
+      id: formData.get("id") as string,
       name: formData.get("name") as string,
       detail: formData.get("detail") as string,
       seats: parseInt(formData.get("seats") as string),
@@ -205,7 +206,7 @@ export default function Software() {
     const { error } = await supabase
       .from('software')
       .update(mapToDB(updatedSoftware))
-      .eq('id', updatedSoftware.id);
+      .eq('id', editingSoftware.id);
 
     if (error) {
       alert("Error updating software: " + error.message);
@@ -369,7 +370,7 @@ export default function Software() {
       </div>
       <div>
         <label className="block text-sm font-bold text-app-muted mb-1">{def ? "License ID" : "License ID (Auto-generated)"}</label>
-        <input required defaultValue={def ? def.id : getNextSoftwareId()} readOnly name="id" type="text" className={`w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500 opacity-50 cursor-not-allowed ${!def ? 'font-mono font-bold text-purple-400' : ''}`} />
+        <input required defaultValue={def ? def.id : getNextSoftwareId()} name="id" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-4 py-2.5 text-app-text focus:outline-none focus:border-purple-500" />
       </div>
       <div className="col-span-2">
         <label className="block text-sm font-bold text-app-muted mb-1">Detail / Note</label>
