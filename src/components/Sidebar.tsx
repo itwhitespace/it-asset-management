@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, Monitor, Box, Settings, LogOut, Banknote, Package, Menu, X, ShieldCheck, Lock } from "lucide-react";
+import { LayoutDashboard, Monitor, Box, Settings, LogOut, Banknote, Package, Menu, X, ShieldCheck, Lock, Building2, ChevronDown } from "lucide-react";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -11,7 +11,15 @@ import PinModal from "@/components/PinModal";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Computers", href: "/computers", icon: Monitor },
+  {
+    name: "Computers",
+    href: "/computers?company=Whitespace+Partners",
+    icon: Monitor,
+    subItems: [
+      { name: "Whitespace Partners", company: "Whitespace Partners", href: "/computers?company=Whitespace+Partners" },
+      { name: "Whitespace Connect", company: "Whitespace Connect", href: "/computers?company=Whitespace+Connect" },
+    ]
+  },
   { name: "Software", href: "/software", icon: Box },
   { name: "Expenses", href: "/expenses", icon: Banknote },
   { name: "Rental Equipments", href: "/rental", icon: Package },
@@ -19,6 +27,8 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentCompany = searchParams?.get("company");
   const [isOpen, setIsOpen] = useState(false);
   const { isAdmin, login, logout } = useAuth();
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -26,7 +36,7 @@ export default function Sidebar() {
   // Close sidebar when route changes on mobile
   useEffect(() => {
     setIsOpen(false);
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   return (
     <>
@@ -74,55 +84,97 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <nav className="flex-1 py-2 px-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 py-2 px-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isMainActive = pathname === item.href && !currentCompany;
+            const isParentActive = pathname.startsWith(item.href) && item.href !== "/";
+
             return (
-              <Link key={item.name} href={item.href} className="block relative">
-                {isActive && (
-                  <motion.div
-                    layoutId="sidebar-active"
-                    className="absolute inset-0 bg-blue-500/10 border border-blue-500/20 rounded-xl"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <div
-                  className={clsx(
-                    "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200",
-                    isActive
-                      ? "text-blue-400"
-                      : "text-app-muted hover:text-app-text hover:bg-app-surface/50"
+              <div key={item.name} className="space-y-1">
+                <Link href={item.href} className="block relative">
+                  {isMainActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute inset-0 bg-blue-500/10 border border-blue-500/20 rounded-xl"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
                   )}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
-                </div>
-              </Link>
+                  <div
+                    className={clsx(
+                      "relative flex items-center justify-between px-4 py-2.5 rounded-xl transition-colors duration-200 text-sm",
+                      isParentActive
+                        ? "text-blue-400 font-semibold"
+                        : "text-app-muted hover:text-app-text hover:bg-app-surface/50 font-medium"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.subItems && (
+                      <ChevronDown className={clsx("w-3 h-3 transition-transform duration-200", isParentActive ? "rotate-180 text-blue-400" : "text-app-muted")} />
+                    )}
+                  </div>
+                </Link>
+
+                {item.subItems && isParentActive && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="pl-7 pr-1 space-y-1 overflow-hidden"
+                  >
+                    {item.subItems.map((sub) => {
+                      const isSubActive = pathname === "/computers" && currentCompany === sub.company;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          className={clsx(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border",
+                            isSubActive
+                              ? sub.company === "Whitespace Partners"
+                                ? "bg-purple-500/15 text-purple-300 border-purple-500/30 font-semibold shadow-sm"
+                                : "bg-amber-500/15 text-amber-300 border-amber-500/30 font-semibold shadow-sm"
+                              : "text-app-muted hover:text-app-text hover:bg-app-surface/50 border-transparent"
+                          )}
+                        >
+                          <Building2 className={clsx(
+                            "w-3.5 h-3.5 shrink-0",
+                            sub.company === "Whitespace Partners" ? "text-purple-400" : "text-amber-400"
+                          )} />
+                          <span className="truncate">{sub.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </div>
             );
           })}
         </nav>
 
         <div className="p-4 border-t border-app-border space-y-1">
-          <Link href="/settings" className="flex items-center gap-3 px-4 py-3 text-app-muted hover:text-app-text hover:bg-app-surface/50 rounded-xl cursor-pointer transition-colors">
-            <Settings className="w-5 h-5" />
+          <Link href="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-app-muted hover:text-app-text hover:bg-app-surface/50 rounded-xl cursor-pointer transition-colors">
+            <Settings className="w-4 h-4" />
             <span className="font-medium">Settings</span>
           </Link>
           
           {isAdmin ? (
             <button 
               onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-xl cursor-pointer transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-xl cursor-pointer transition-colors"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
               <span className="font-medium">Logout</span>
             </button>
           ) : (
             <button 
               onClick={() => setIsPinModalOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl cursor-pointer transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl cursor-pointer transition-colors"
             >
-              <Lock className="w-5 h-5" />
+              <Lock className="w-4 h-4" />
               <span className="font-medium">Admin Login</span>
             </button>
           )}
