@@ -86,8 +86,13 @@ export default function Sidebar() {
 
         <nav className="flex-1 py-2 px-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
-            const isMainActive = pathname === item.href && !currentCompany;
-            const isParentActive = pathname.startsWith(item.href) && item.href !== "/";
+            const isComputers = item.name === "Computers";
+            const isMainActive = isComputers
+              ? pathname === "/computers" && (!currentCompany || currentCompany === "Whitespace Partners")
+              : pathname === item.href;
+            const isParentActive = isComputers
+              ? pathname.startsWith("/computers")
+              : pathname.startsWith(item.href) && item.href !== "/";
 
             return (
               <div key={item.name} className="space-y-1">
