@@ -20,52 +20,117 @@ export default function Dashboard() {
     const fetchData = async () => {
       setIsLoading(true);
       
-      const [compRes, softRes] = await Promise.all([
-        supabase.from('computers').select('*'),
-        supabase.from('software').select('*')
-      ]);
+      let compBase: Computer[] = [];
+      let softBase: Software[] = [];
 
-      if (compRes.data) {
-        setComputerList(compRes.data.map(item => ({
-          id: item.id,
-          computerName: item.computer_name || "",
-          model: item.model,
-          user: item.user_name,
-          department: item.department,
-          company: item.company,
-          status: item.status,
-          type: item.type,
-          os: item.os,
-          osKey: item.os_key,
-          serialNo: item.serial_no,
-          macAddress: item.mac_address,
-          mainBoard: item.main_board,
-          cpu: item.cpu,
-          ram: item.ram,
-          gpu: item.gpu,
-          hdd: item.hdd,
-          warranty: item.warranty,
-          purchaseDate: item.purchase_date,
-          price: item.price
-        })));
+      try {
+        const [compRes, softRes] = await Promise.all([
+          supabase.from('computers').select('*'),
+          supabase.from('software').select('*')
+        ]);
+
+        if (compRes.data && compRes.data.length > 0) {
+          compBase = compRes.data.map(item => ({
+            id: item.id,
+            computerName: item.computer_name || "",
+            model: item.model,
+            user: item.user_name,
+            department: item.department,
+            company: item.company,
+            status: item.status,
+            type: item.type,
+            os: item.os,
+            osKey: item.os_key,
+            serialNo: item.serial_no,
+            macAddress: item.mac_address,
+            mainBoard: item.main_board,
+            cpu: item.cpu,
+            ram: item.ram,
+            gpu: item.gpu,
+            hdd: item.hdd,
+            warranty: item.warranty,
+            purchaseDate: item.purchase_date,
+            price: item.price
+          }));
+        } else {
+          compBase = initialComputers;
+        }
+
+        if (softRes.data && softRes.data.length > 0) {
+          softBase = softRes.data.map(item => ({
+            id: item.id,
+            name: item.name,
+            detail: item.detail,
+            seats: item.seats,
+            used: item.used,
+            expiry: item.expiry,
+            status: item.status,
+            pricePerUnit: parseFloat(item.price_per_unit || "0"),
+            type: item.type,
+            licenseType: item.license_type,
+            assignedUsers: item.assigned_users || []
+          }));
+        } else {
+          softBase = initialSoftware;
+        }
+      } catch {
+        compBase = initialComputers;
+        softBase = initialSoftware;
       }
 
-      if (softRes.data) {
-        setSoftwareList(softRes.data.map(item => ({
-          id: item.id,
-          name: item.name,
-          detail: item.detail,
-          seats: item.seats,
-          used: item.used,
-          expiry: item.expiry,
-          status: item.status,
-          pricePerUnit: parseFloat(item.price_per_unit),
-          type: item.type,
-          licenseType: item.license_type,
-          assignedUsers: item.assigned_users || []
-        })));
+      // Apply Local Overlays
+      try {
+        const savedCompEdits = JSON.parse(localStorage.getItem("local_computer_edits") || "{}");
+        const savedCompAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
+        const savedCompDeletions = JSON.parse(localStorage.getItem("local_computer_deletions") || "[]");
+
+        let mergedComp = compBase.map(item => {
+          const edit = (item.id && savedCompEdits[item.id]) || (item.computerName && savedCompEdits[item.computerName]);
+          return edit ? { ...item, ...edit } : item;
+        });
+
+        mergedComp = mergedComp.filter(item => {
+          const isDeleted = (item.id && savedCompDeletions.includes(item.id)) || (item.computerName && savedCompDeletions.includes(item.computerName));
+          return !isDeleted;
+        });
+
+        for (const add of savedCompAdditions) {
+          const editForAdd = (add.id && savedCompEdits[add.id]) || (add.computerName && savedCompEdits[add.computerName]) || add;
+          const finalAdd = { ...add, ...editForAdd };
+
+          const isAlreadyInMerged = mergedComp.some(i =>
+            (i.id && finalAdd.id && i.id === finalAdd.id) ||
+            (i.computerName && finalAdd.computerName && i.computerName === finalAdd.computerName)
+          );
+
+          if (!isAlreadyInMerged) {
+            mergedComp.unshift(finalAdd);
+          }
+        }
+        setComputerList(mergedComp);
+      } catch {
+        setComputerList(compBase);
       }
-      
+
+      try {
+        const savedSoftEdits = JSON.parse(localStorage.getItem("local_software_edits") || "{}");
+        const savedSoftAdditions = JSON.parse(localStorage.getItem("local_software_additions") || "[]");
+        const savedSoftDeletions = JSON.parse(localStorage.getItem("local_software_deletions") || "[]");
+
+        let mergedSoft = softBase.map(item => savedSoftEdits[item.id] ? { ...item, ...savedSoftEdits[item.id] } : item);
+        mergedSoft = mergedSoft.filter(item => !savedSoftDeletions.includes(item.id));
+        for (const add of savedSoftAdditions) {
+          const editForAdd = (add.id && savedSoftEdits[add.id]) || add;
+          const finalAdd = { ...add, ...editForAdd };
+          if (!mergedSoft.some(i => i.id === finalAdd.id)) {
+            mergedSoft.unshift(finalAdd);
+          }
+        }
+        setSoftwareList(mergedSoft);
+      } catch {
+        setSoftwareList(softBase);
+      }
+
       setIsLoading(false);
     };
 

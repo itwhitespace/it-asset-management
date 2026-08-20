@@ -92,28 +92,53 @@ export default function Software() {
 
   const fetchSoftware = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('software')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let baseList: SoftwareType[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('software')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching software:", error);
-    } else if (data) {
-      const mapped: SoftwareType[] = data.map(item => ({
-        id: item.id || "",
-        name: item.name || "",
-        detail: item.detail || "",
-        seats: item.seats || 0,
-        used: item.used || 0,
-        expiry: item.expiry || "",
-        status: item.status || "Active",
-        pricePerUnit: parseFloat(item.price_per_unit || "0"),
-        type: item.type || "Back office",
-        licenseType: item.license_type || "Yearly",
-        assignedUsers: item.assigned_users || []
-      }));
-      setSoftwareList(mapped);
+      if (error || !data || data.length === 0) {
+        console.warn("Using initialSoftware fallback data:", error?.message);
+        baseList = initialSoftware;
+      } else {
+        baseList = data.map(item => ({
+          id: item.id || "",
+          name: item.name || "",
+          detail: item.detail || "",
+          seats: item.seats || 0,
+          used: item.used || 0,
+          expiry: item.expiry || "",
+          status: item.status || "Active",
+          pricePerUnit: parseFloat(item.price_per_unit || "0"),
+          type: item.type || "Back office",
+          licenseType: item.license_type || "Yearly",
+          assignedUsers: item.assigned_users || []
+        }));
+      }
+    } catch (e) {
+      console.warn("Supabase fetch exception, using fallback data:", e);
+      baseList = initialSoftware;
+    }
+
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_software_edits") || "{}");
+      const savedAdditions = JSON.parse(localStorage.getItem("local_software_additions") || "[]");
+      const savedDeletions = JSON.parse(localStorage.getItem("local_software_deletions") || "[]");
+
+      let merged = baseList.map(item => savedEdits[item.id] ? { ...item, ...savedEdits[item.id] } : item);
+      merged = merged.filter(item => !savedDeletions.includes(item.id));
+
+      for (const add of savedAdditions) {
+        if (!merged.some(i => i.id === add.id)) {
+          merged.unshift(add);
+        }
+      }
+
+      setSoftwareList(merged);
+    } catch {
+      setSoftwareList(baseList);
     }
     setIsLoading(false);
   };
@@ -175,13 +200,25 @@ export default function Software() {
       licenseType: formData.get("licenseType") as "Monthly" | "Yearly",
       assignedUsers: [],
     };
-    
+
+    // 1. Optimistic update
+    setSoftwareList((prev) => [newSoftware, ...prev]);
+
+    // 2. Local persistence
+    try {
+      const savedAdditions = JSON.parse(localStorage.getItem("local_software_additions") || "[]");
+      savedAdditions.unshift(newSoftware);
+      localStorage.setItem("local_software_additions", JSON.stringify(savedAdditions));
+    } catch {
+      // Ignore
+    }
+
+    setIsAddModalOpen(false);
+
+    // 3. Supabase sync
     const { error } = await supabase.from('software').insert([mapToDB(newSoftware)]);
     if (error) {
-      alert("Error adding software: " + error.message);
-    } else {
-      await fetchSoftware();
-      setIsAddModalOpen(false);
+      console.warn("Supabase insert info:", error.message);
     }
   };
 
@@ -203,28 +240,56 @@ export default function Software() {
       licenseType: formData.get("licenseType") as "Monthly" | "Yearly",
     };
 
+    // 1. Optimistic update
+    setSoftwareList((prev) =>
+      prev.map((item) => (item.id === editingSoftware.id ? updatedSoftware : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_software_edits") || "{}");
+      savedEdits[updatedSoftware.id] = updatedSoftware;
+      localStorage.setItem("local_software_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    setEditingSoftware(null);
+
+    // 3. Supabase sync
     const { error } = await supabase
       .from('software')
       .update(mapToDB(updatedSoftware))
       .eq('id', editingSoftware.id);
 
     if (error) {
-      alert("Error updating software: " + error.message);
-    } else {
-      await fetchSoftware();
-      setEditingSoftware(null);
+      console.warn("Supabase update info:", error.message);
     }
   };
 
   const confirmDelete = async () => {
     if (deletingSoftwareId) {
-      const { error } = await supabase.from('software').delete().eq('id', deletingSoftwareId);
+      const targetId = deletingSoftwareId;
+
+      // 1. Optimistic update
+      setSoftwareList((prev) => prev.filter((item) => item.id !== targetId));
+
+      // 2. Local persistence
+      try {
+        const savedDeletions = JSON.parse(localStorage.getItem("local_software_deletions") || "[]");
+        savedDeletions.push(targetId);
+        localStorage.setItem("local_software_deletions", JSON.stringify(savedDeletions));
+      } catch {
+        // Ignore
+      }
+
+      if (viewingSoftwareId === deletingSoftwareId) setViewingSoftwareId(null);
+      setDeletingSoftwareId(null);
+
+      // 3. Supabase sync
+      const { error } = await supabase.from('software').delete().eq('id', targetId);
       if (error) {
-        alert("Error deleting software: " + error.message);
-      } else {
-        await fetchSoftware();
-        if (viewingSoftwareId === deletingSoftwareId) setViewingSoftwareId(null);
-        setDeletingSoftwareId(null);
+        console.warn("Supabase delete info:", error.message);
       }
     }
   };
@@ -257,16 +322,30 @@ export default function Software() {
       assignedUsers: updatedUsers
     };
 
+    // 1. Optimistic update
+    setSoftwareList((prev) =>
+      prev.map((item) => (item.id === updatedSoftware.id ? updatedSoftware : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_software_edits") || "{}");
+      savedEdits[updatedSoftware.id] = updatedSoftware;
+      localStorage.setItem("local_software_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    form.reset();
+
+    // 3. Supabase sync
     const { error } = await supabase
       .from('software')
       .update(mapToDB(updatedSoftware))
       .eq('id', viewingSoftware.id);
 
     if (error) {
-      alert("Error assigning user: " + error.message);
-    } else {
-      await fetchSoftware();
-      form.reset();
+      console.warn("Supabase assign info:", error.message);
     }
   };
 
@@ -287,15 +366,28 @@ export default function Software() {
       assignedUsers: updatedUsers
     };
 
+    // 1. Optimistic update
+    setSoftwareList((prev) =>
+      prev.map((item) => (item.id === updatedSoftware.id ? updatedSoftware : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_software_edits") || "{}");
+      savedEdits[updatedSoftware.id] = updatedSoftware;
+      localStorage.setItem("local_software_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    // 3. Supabase sync
     const { error } = await supabase
       .from('software')
       .update(mapToDB(updatedSoftware))
       .eq('id', viewingSoftware.id);
 
     if (error) {
-      alert("Error removing user: " + error.message);
-    } else {
-      await fetchSoftware();
+      console.warn("Supabase remove user info:", error.message);
     }
   };
 
@@ -349,16 +441,30 @@ export default function Software() {
       assignedUsers: updatedUsers
     };
 
+    // 1. Optimistic update
+    setSoftwareList((prev) =>
+      prev.map((item) => (item.id === updatedSoftware.id ? updatedSoftware : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_software_edits") || "{}");
+      savedEdits[updatedSoftware.id] = updatedSoftware;
+      localStorage.setItem("local_software_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    setEditingUserEmail(null);
+
+    // 3. Supabase sync
     const { error } = await supabase
       .from('software')
       .update(mapToDB(updatedSoftware))
       .eq('id', viewingSoftware.id);
 
     if (error) {
-      alert("Error updating user details: " + error.message);
-    } else {
-      await fetchSoftware();
-      setEditingUserEmail(null);
+      console.warn("Supabase edit user info:", error.message);
     }
   };
 

@@ -65,26 +65,50 @@ export default function RentalEquipments() {
 
   const fetchEquipments = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('rental_equipments')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let baseList: RentalEquipment[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('rental_equipments')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching rental equipments:", error);
-    } else if (data) {
-      setEquipments(data.map(item => ({
-        assetId: item.asset_id,
-        model: item.model,
-        serialNo: item.serial_no,
-        warranty: item.warranty,
-        purchaseDate: item.purchase_date,
-        cost: item.cost,
-        location: item.location,
-        status: item.status as "Available" | "Busy",
-        holder: item.holder,
-        remark: item.remark
-      })));
+      if (error || !data) {
+        console.warn("Error fetching rental equipments, fallback to local:", error?.message);
+      } else {
+        baseList = data.map(item => ({
+          assetId: item.asset_id,
+          model: item.model,
+          serialNo: item.serial_no,
+          warranty: item.warranty,
+          purchaseDate: item.purchase_date,
+          cost: item.cost,
+          location: item.location,
+          status: item.status as "Available" | "Busy",
+          holder: item.holder,
+          remark: item.remark
+        }));
+      }
+    } catch (e) {
+      console.warn("Supabase fetch exception, fallback to local:", e);
+    }
+
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_rental_edits") || "{}");
+      const savedAdditions = JSON.parse(localStorage.getItem("local_rental_additions") || "[]");
+      const savedDeletions = JSON.parse(localStorage.getItem("local_rental_deletions") || "[]");
+
+      let merged = baseList.map(item => savedEdits[item.assetId] ? { ...item, ...savedEdits[item.assetId] } : item);
+      merged = merged.filter(item => !savedDeletions.includes(item.assetId));
+
+      for (const add of savedAdditions) {
+        if (!merged.some(i => i.assetId === add.assetId)) {
+          merged.unshift(add);
+        }
+      }
+
+      setEquipments(merged);
+    } catch {
+      setEquipments(baseList);
     }
     setIsLoading(false);
   };
@@ -157,15 +181,26 @@ export default function RentalEquipments() {
 
   const handleDelete = async (assetId: string) => {
     if (window.confirm("Are you sure you want to delete this equipment?")) {
+      // 1. Optimistic update
+      setEquipments((prev) => prev.filter((item) => item.assetId !== assetId));
+
+      // 2. Local persistence
+      try {
+        const savedDeletions = JSON.parse(localStorage.getItem("local_rental_deletions") || "[]");
+        savedDeletions.push(assetId);
+        localStorage.setItem("local_rental_deletions", JSON.stringify(savedDeletions));
+      } catch {
+        // Ignore
+      }
+
+      // 3. Supabase sync
       const { error } = await supabase
         .from('rental_equipments')
         .delete()
         .eq('asset_id', assetId);
 
       if (error) {
-        alert("Error deleting equipment: " + error.message);
-      } else {
-        await fetchEquipments();
+        console.warn("Supabase delete info:", error.message);
       }
     }
   };
@@ -186,12 +221,24 @@ export default function RentalEquipments() {
       remark: formData.get("remark") as string,
     };
     
+    // 1. Optimistic update
+    setEquipments((prev) => [newEquip, ...prev]);
+
+    // 2. Local persistence
+    try {
+      const savedAdditions = JSON.parse(localStorage.getItem("local_rental_additions") || "[]");
+      savedAdditions.unshift(newEquip);
+      localStorage.setItem("local_rental_additions", JSON.stringify(savedAdditions));
+    } catch {
+      // Ignore
+    }
+
+    setIsAddModalOpen(false);
+
+    // 3. Supabase sync
     const { error } = await supabase.from('rental_equipments').insert([mapToDB(newEquip)]);
     if (error) {
-      alert("Error adding equipment: " + error.message);
-    } else {
-      await fetchEquipments();
-      setIsAddModalOpen(false);
+      console.warn("Supabase insert info:", error.message);
     }
   };
 
@@ -212,16 +259,30 @@ export default function RentalEquipments() {
       remark: formData.get("remark") as string,
     };
 
+    // 1. Optimistic update
+    setEquipments((prev) =>
+      prev.map((item) => (item.assetId === editingEquip.assetId ? updatedEquip : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_rental_edits") || "{}");
+      savedEdits[updatedEquip.assetId] = updatedEquip;
+      localStorage.setItem("local_rental_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    setEditingEquip(null);
+
+    // 3. Supabase sync
     const { error } = await supabase
       .from('rental_equipments')
       .update(mapToDB(updatedEquip))
       .eq('asset_id', updatedEquip.assetId);
 
     if (error) {
-      alert("Error updating equipment: " + error.message);
-    } else {
-      await fetchEquipments();
-      setEditingEquip(null);
+      console.warn("Supabase update info:", error.message);
     }
   };
 
@@ -232,14 +293,36 @@ export default function RentalEquipments() {
     const holder = formData.get("holder") as string;
     const date = new Date().toISOString().split('T')[0];
 
+    const updatedEquip: RentalEquipment = {
+      ...rentingEquip,
+      status: 'Busy',
+      holder: holder
+    };
+
+    // 1. Optimistic update
+    setEquipments((prev) =>
+      prev.map((item) => (item.assetId === rentingEquip.assetId ? updatedEquip : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_rental_edits") || "{}");
+      savedEdits[updatedEquip.assetId] = updatedEquip;
+      localStorage.setItem("local_rental_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    setRentingEquip(null);
+
+    // 3. Supabase sync
     const { error: equipError } = await supabase
       .from('rental_equipments')
       .update({ status: 'Busy', holder: holder })
       .eq('asset_id', rentingEquip.assetId);
 
     if (equipError) {
-      alert("Error updating equipment: " + equipError.message);
-      return;
+      console.warn("Supabase rent info:", equipError.message);
     }
 
     await supabase.from('rental_history').insert([{
@@ -250,9 +333,7 @@ export default function RentalEquipments() {
       date: date
     }]);
 
-    await fetchEquipments();
     await fetchHistory();
-    setRentingEquip(null);
   };
 
   const handleReturnSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -260,14 +341,36 @@ export default function RentalEquipments() {
     if (!returningEquip) return;
     const date = new Date().toISOString().split('T')[0];
 
+    const updatedEquip: RentalEquipment = {
+      ...returningEquip,
+      status: 'Available',
+      holder: '-'
+    };
+
+    // 1. Optimistic update
+    setEquipments((prev) =>
+      prev.map((item) => (item.assetId === returningEquip.assetId ? updatedEquip : item))
+    );
+
+    // 2. Local persistence
+    try {
+      const savedEdits = JSON.parse(localStorage.getItem("local_rental_edits") || "{}");
+      savedEdits[updatedEquip.assetId] = updatedEquip;
+      localStorage.setItem("local_rental_edits", JSON.stringify(savedEdits));
+    } catch {
+      // Ignore
+    }
+
+    setReturningEquip(null);
+
+    // 3. Supabase sync
     const { error: equipError } = await supabase
       .from('rental_equipments')
       .update({ status: 'Available', holder: '-' })
       .eq('asset_id', returningEquip.assetId);
 
     if (equipError) {
-      alert("Error returning equipment: " + equipError.message);
-      return;
+      console.warn("Supabase return info:", equipError.message);
     }
 
     await supabase.from('rental_history').insert([{
@@ -278,9 +381,7 @@ export default function RentalEquipments() {
       date: date
     }]);
 
-    await fetchEquipments();
     await fetchHistory();
-    setReturningEquip(null);
   };
 
   return (

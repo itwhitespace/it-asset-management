@@ -28,7 +28,30 @@ export default function Computers() {
 
   const handleUpdateComputerUser = async (compId: string, newUser: string, newDept: string) => {
     setComputers((prev) =>
-      prev.map((c) => (c.id === compId ? { ...c, user: newUser, department: newDept } : c))
+      prev.map((c) => {
+        if (c.id === compId || c.computerName === compId) {
+          const updated = { ...c, user: newUser, department: newDept };
+          try {
+            const savedEdits = JSON.parse(localStorage.getItem("local_computer_edits") || "{}");
+            savedEdits[compId] = { ...(savedEdits[compId] || c), user: newUser, department: newDept };
+            if (c.id) savedEdits[c.id] = { ...(savedEdits[c.id] || c), user: newUser, department: newDept };
+            if (c.computerName) savedEdits[c.computerName] = { ...(savedEdits[c.computerName] || c), user: newUser, department: newDept };
+            localStorage.setItem("local_computer_edits", JSON.stringify(savedEdits));
+
+            const savedAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
+            const updatedAdditions = savedAdditions.map((add: Computer) =>
+              (add.id === compId || add.computerName === compId || add.id === c.id || add.computerName === c.computerName)
+                ? { ...add, user: newUser, department: newDept }
+                : add
+            );
+            localStorage.setItem("local_computer_additions", JSON.stringify(updatedAdditions));
+          } catch {
+            // Ignore localStorage error
+          }
+          return updated;
+        }
+        return c;
+      })
     );
 
     try {
@@ -183,12 +206,27 @@ export default function Computers() {
       const savedAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
       const savedDeletions = JSON.parse(localStorage.getItem("local_computer_deletions") || "[]");
 
-      let merged = baseList.map(item => savedEdits[item.id] ? { ...item, ...savedEdits[item.id] } : item);
-      merged = merged.filter(item => !savedDeletions.includes(item.id));
+      let merged = baseList.map(item => {
+        const edit = (item.id && savedEdits[item.id]) || (item.computerName && savedEdits[item.computerName]);
+        return edit ? { ...item, ...edit } : item;
+      });
+
+      merged = merged.filter(item => {
+        const isDeleted = (item.id && savedDeletions.includes(item.id)) || (item.computerName && savedDeletions.includes(item.computerName));
+        return !isDeleted;
+      });
 
       for (const add of savedAdditions) {
-        if (!merged.some(i => i.id === add.id)) {
-          merged.unshift(add);
+        const editForAdd = (add.id && savedEdits[add.id]) || (add.computerName && savedEdits[add.computerName]) || add;
+        const finalAdd = { ...add, ...editForAdd };
+
+        const isAlreadyInMerged = merged.some(i =>
+          (i.id && finalAdd.id && i.id === finalAdd.id) ||
+          (i.computerName && finalAdd.computerName && i.computerName === finalAdd.computerName)
+        );
+
+        if (!isAlreadyInMerged) {
+          merged.unshift(finalAdd);
         }
       }
 
@@ -277,13 +315,17 @@ export default function Computers() {
     e.preventDefault();
     if (!editingDevice) return;
     const formData = new FormData(e.currentTarget);
+    const updatedCompany = ((formData.get("company") as string) || "Whitespace Partners").trim() as any;
+    const targetId = (formData.get("id") as string) || editingDevice.id;
+
     const updatedComputer: Computer = {
       ...editingDevice,
+      id: targetId,
       computerName: formData.get("computerName") as string,
       model: formData.get("model") as string,
       user: formData.get("user") as string || "Unassigned",
       department: formData.get("department") as string,
-      company: formData.get("company") as any,
+      company: updatedCompany,
       status: formData.get("status") as "Active" | "Available",
       type: formData.get("type") as "Laptop" | "Desktop" | "MacOS",
       os: formData.get("os") as string,
@@ -302,25 +344,42 @@ export default function Computers() {
 
     // 1. Optimistic update
     setComputers((prev) =>
-      prev.map((item) => (item.id === updatedComputer.id ? updatedComputer : item))
+      prev.map((item) => (item.id === targetId || item.id === editingDevice.id ? updatedComputer : item))
     );
 
-    // 2. Local persistence
+    // 2. Local persistence (savedEdits + savedAdditions sync)
     try {
       const savedEdits = JSON.parse(localStorage.getItem("local_computer_edits") || "{}");
-      savedEdits[updatedComputer.id] = updatedComputer;
+      savedEdits[targetId] = updatedComputer;
+      if (updatedComputer.id) savedEdits[updatedComputer.id] = updatedComputer;
+      if (updatedComputer.computerName) savedEdits[updatedComputer.computerName] = updatedComputer;
+      if (editingDevice.id) savedEdits[editingDevice.id] = updatedComputer;
+      if (editingDevice.computerName) savedEdits[editingDevice.computerName] = updatedComputer;
       localStorage.setItem("local_computer_edits", JSON.stringify(savedEdits));
+
+      const savedAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
+      const updatedAdditions = savedAdditions.map((add: Computer) =>
+        (add.id === targetId || add.id === editingDevice.id || add.computerName === editingDevice.computerName || add.computerName === updatedComputer.computerName)
+          ? updatedComputer
+          : add
+      );
+      localStorage.setItem("local_computer_additions", JSON.stringify(updatedAdditions));
     } catch {
       // Ignore
     }
 
     setEditingDevice(null);
 
-    // 3. Supabase sync
+    // 3. Auto-switch company filter if company changed and filter is active
+    if (selectedCompany !== "All" && updatedCompany !== selectedCompany) {
+      handleSelectCompany(updatedCompany);
+    }
+
+    // 4. Supabase sync
     const { error } = await supabase
       .from('computers')
       .update(mapToDB(updatedComputer))
-      .eq('id', updatedComputer.id);
+      .eq('id', targetId);
 
     if (error) {
       console.warn("Supabase update info:", error.message);
@@ -359,11 +418,13 @@ export default function Computers() {
 
   const FormFields = ({ def }: { def?: Computer }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-      {!def && (
+      {!def ? (
         <div>
           <label className="block text-xs font-bold text-app-muted mb-1">Device ID</label>
           <input required name="id" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-xs text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. MAC-005" />
         </div>
+      ) : (
+        <input type="hidden" name="id" value={def.id} />
       )}
       <div>
         <label className="block text-xs font-bold text-app-muted mb-1">Computer Name</label>
@@ -379,7 +440,7 @@ export default function Computers() {
       </div>
       <div>
         <label className="block text-xs font-bold text-app-muted mb-1">Company</label>
-        <select defaultValue={def?.company} name="company" className="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-xs text-app-text focus:outline-none focus:border-blue-500">
+        <select defaultValue={def?.company ? def.company.trim() : "Whitespace Partners"} name="company" className="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-xs text-app-text focus:outline-none focus:border-blue-500">
           <option value="Whitespace Partners">Whitespace Partners</option>
           <option value="Whitespace Connect">Whitespace Connect</option>
         </select>
@@ -665,7 +726,7 @@ export default function Computers() {
                 <button onClick={() => setEditingDevice(null)} className="p-2 text-app-muted hover:text-app-text bg-app-bg border border-app-border rounded-lg"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-6 overflow-y-auto flex-1">
-                <form id="edit-form" onSubmit={handleEditSubmit} className="space-y-4">
+                <form id="edit-form" key={editingDevice.id} onSubmit={handleEditSubmit} className="space-y-4">
                   <FormFields def={editingDevice} />
                 </form>
               </div>
