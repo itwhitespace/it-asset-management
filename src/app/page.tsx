@@ -85,29 +85,29 @@ export default function Dashboard() {
         const savedCompDeletions = JSON.parse(localStorage.getItem("local_computer_deletions") || "[]");
 
         let mergedComp = compBase.map(item => {
-          const edit = (item.id && savedCompEdits[item.id]) || (item.computerName && savedCompEdits[item.computerName]);
+          const edit = savedCompEdits[item.id];
           return edit ? { ...item, ...edit } : item;
         });
 
-        mergedComp = mergedComp.filter(item => {
-          const isDeleted = (item.id && savedCompDeletions.includes(item.id)) || (item.computerName && savedCompDeletions.includes(item.computerName));
-          return !isDeleted;
-        });
+        mergedComp = mergedComp.filter(item => !savedCompDeletions.includes(item.id));
 
         for (const add of savedCompAdditions) {
-          const editForAdd = (add.id && savedCompEdits[add.id]) || (add.computerName && savedCompEdits[add.computerName]) || add;
+          const editForAdd = savedCompEdits[add.id] || add;
           const finalAdd = { ...add, ...editForAdd };
 
-          const isAlreadyInMerged = mergedComp.some(i =>
-            (i.id && finalAdd.id && i.id === finalAdd.id) ||
-            (i.computerName && finalAdd.computerName && i.computerName === finalAdd.computerName)
-          );
-
-          if (!isAlreadyInMerged) {
+          if (!mergedComp.some(i => i.id === finalAdd.id)) {
             mergedComp.unshift(finalAdd);
           }
         }
-        setComputerList(mergedComp);
+
+        const uniqueMap = new Map<string, Computer>();
+        for (const item of mergedComp) {
+          if (item.id && !uniqueMap.has(item.id)) {
+            uniqueMap.set(item.id, item);
+          }
+        }
+
+        setComputerList(Array.from(uniqueMap.values()));
       } catch {
         setComputerList(compBase);
       }
@@ -120,13 +120,21 @@ export default function Dashboard() {
         let mergedSoft = softBase.map(item => savedSoftEdits[item.id] ? { ...item, ...savedSoftEdits[item.id] } : item);
         mergedSoft = mergedSoft.filter(item => !savedSoftDeletions.includes(item.id));
         for (const add of savedSoftAdditions) {
-          const editForAdd = (add.id && savedSoftEdits[add.id]) || add;
+          const editForAdd = savedSoftEdits[add.id] || add;
           const finalAdd = { ...add, ...editForAdd };
           if (!mergedSoft.some(i => i.id === finalAdd.id)) {
             mergedSoft.unshift(finalAdd);
           }
         }
-        setSoftwareList(mergedSoft);
+
+        const uniqueMapSoft = new Map<string, Software>();
+        for (const item of mergedSoft) {
+          if (item.id && !uniqueMapSoft.has(item.id)) {
+            uniqueMapSoft.set(item.id, item);
+          }
+        }
+
+        setSoftwareList(Array.from(uniqueMapSoft.values()));
       } catch {
         setSoftwareList(softBase);
       }

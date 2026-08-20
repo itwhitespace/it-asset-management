@@ -131,12 +131,21 @@ export default function Software() {
       merged = merged.filter(item => !savedDeletions.includes(item.id));
 
       for (const add of savedAdditions) {
-        if (!merged.some(i => i.id === add.id)) {
-          merged.unshift(add);
+        const editForAdd = savedEdits[add.id] || add;
+        const finalAdd = { ...add, ...editForAdd };
+        if (!merged.some(i => i.id === finalAdd.id)) {
+          merged.unshift(finalAdd);
         }
       }
 
-      setSoftwareList(merged);
+      const uniqueMap = new Map<string, SoftwareType>();
+      for (const item of merged) {
+        if (item.id && !uniqueMap.has(item.id)) {
+          uniqueMap.set(item.id, item);
+        }
+      }
+
+      setSoftwareList(Array.from(uniqueMap.values()));
     } catch {
       setSoftwareList(baseList);
     }

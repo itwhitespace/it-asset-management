@@ -101,12 +101,21 @@ export default function RentalEquipments() {
       merged = merged.filter(item => !savedDeletions.includes(item.assetId));
 
       for (const add of savedAdditions) {
-        if (!merged.some(i => i.assetId === add.assetId)) {
-          merged.unshift(add);
+        const editForAdd = savedEdits[add.assetId] || add;
+        const finalAdd = { ...add, ...editForAdd };
+        if (!merged.some(i => i.assetId === finalAdd.assetId)) {
+          merged.unshift(finalAdd);
         }
       }
 
-      setEquipments(merged);
+      const uniqueMap = new Map<string, RentalEquipment>();
+      for (const item of merged) {
+        if (item.assetId && !uniqueMap.has(item.assetId)) {
+          uniqueMap.set(item.assetId, item);
+        }
+      }
+
+      setEquipments(Array.from(uniqueMap.values()));
     } catch {
       setEquipments(baseList);
     }

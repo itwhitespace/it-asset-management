@@ -207,30 +207,30 @@ export default function Computers() {
       const savedDeletions = JSON.parse(localStorage.getItem("local_computer_deletions") || "[]");
 
       let merged = baseList.map(item => {
-        const edit = (item.id && savedEdits[item.id]) || (item.computerName && savedEdits[item.computerName]);
+        const edit = savedEdits[item.id];
         return edit ? { ...item, ...edit } : item;
       });
 
-      merged = merged.filter(item => {
-        const isDeleted = (item.id && savedDeletions.includes(item.id)) || (item.computerName && savedDeletions.includes(item.computerName));
-        return !isDeleted;
-      });
+      merged = merged.filter(item => !savedDeletions.includes(item.id));
 
       for (const add of savedAdditions) {
-        const editForAdd = (add.id && savedEdits[add.id]) || (add.computerName && savedEdits[add.computerName]) || add;
+        const editForAdd = savedEdits[add.id] || add;
         const finalAdd = { ...add, ...editForAdd };
 
-        const isAlreadyInMerged = merged.some(i =>
-          (i.id && finalAdd.id && i.id === finalAdd.id) ||
-          (i.computerName && finalAdd.computerName && i.computerName === finalAdd.computerName)
-        );
-
-        if (!isAlreadyInMerged) {
+        if (!merged.some(i => i.id === finalAdd.id)) {
           merged.unshift(finalAdd);
         }
       }
 
-      setComputers(merged);
+      // Deduplicate strictly by item.id to ensure no duplicates ever occur
+      const uniqueMap = new Map<string, Computer>();
+      for (const item of merged) {
+        if (item.id && !uniqueMap.has(item.id)) {
+          uniqueMap.set(item.id, item);
+        }
+      }
+
+      setComputers(Array.from(uniqueMap.values()));
     } catch {
       setComputers(baseList);
     }
@@ -288,13 +288,17 @@ export default function Computers() {
     };
 
     // 1. Optimistic update
-    setComputers((prev) => [newComputer, ...prev]);
+    setComputers((prev) => {
+      const filtered = prev.filter(item => item.id !== newComputer.id);
+      return [newComputer, ...filtered];
+    });
 
     // 2. Local persistence
     try {
       const savedAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
-      savedAdditions.unshift(newComputer);
-      localStorage.setItem("local_computer_additions", JSON.stringify(savedAdditions));
+      const filteredAdditions = savedAdditions.filter((item: Computer) => item.id !== newComputer.id);
+      filteredAdditions.unshift(newComputer);
+      localStorage.setItem("local_computer_additions", JSON.stringify(filteredAdditions));
     } catch {
       // Ignore
     }
@@ -347,19 +351,16 @@ export default function Computers() {
       prev.map((item) => (item.id === targetId || item.id === editingDevice.id ? updatedComputer : item))
     );
 
-    // 2. Local persistence (savedEdits + savedAdditions sync)
+    // 2. Local persistence (savedEdits + savedAdditions sync strictly by id)
     try {
       const savedEdits = JSON.parse(localStorage.getItem("local_computer_edits") || "{}");
       savedEdits[targetId] = updatedComputer;
-      if (updatedComputer.id) savedEdits[updatedComputer.id] = updatedComputer;
-      if (updatedComputer.computerName) savedEdits[updatedComputer.computerName] = updatedComputer;
       if (editingDevice.id) savedEdits[editingDevice.id] = updatedComputer;
-      if (editingDevice.computerName) savedEdits[editingDevice.computerName] = updatedComputer;
       localStorage.setItem("local_computer_edits", JSON.stringify(savedEdits));
 
       const savedAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
       const updatedAdditions = savedAdditions.map((add: Computer) =>
-        (add.id === targetId || add.id === editingDevice.id || add.computerName === editingDevice.computerName || add.computerName === updatedComputer.computerName)
+        (add.id === targetId || add.id === editingDevice.id)
           ? updatedComputer
           : add
       );
