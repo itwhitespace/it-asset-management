@@ -601,11 +601,12 @@ export default function Computers() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-app-bg/50 text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border">
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Computer Name</th>
+                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Device ID</th>
                 <th className="px-3.5 py-3 font-bold whitespace-nowrap">Device Info</th>
                 <th className="px-3.5 py-3 font-bold whitespace-nowrap">Assigned To</th>
                 <th className="px-3.5 py-3 font-bold whitespace-nowrap">Company</th>
                 <th className="px-3.5 py-3 font-bold whitespace-nowrap">Department</th>
+                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Computer Name</th>
                 <th className="px-3.5 py-3 font-bold whitespace-nowrap">OS</th>
                 <th className="px-3.5 py-3 font-bold whitespace-nowrap">Status</th>
                 <th className="px-3.5 py-3 font-bold text-right whitespace-nowrap">Actions</th>
@@ -620,7 +621,7 @@ export default function Computers() {
                   key={comp.id}
                   className="hover:bg-app-bg/50 transition-colors group"
                 >
-                  <td className="px-3.5 py-2.5 text-xs text-app-text font-bold whitespace-nowrap">{comp.computerName}</td>
+                  <td className="px-3.5 py-2.5 text-xs text-app-text font-bold font-mono whitespace-nowrap">{comp.id}</td>
                   <td className="px-3.5 py-2.5">
                     <div className="flex items-center gap-2.5">
                       <div className="p-1.5 bg-app-bg border border-app-border rounded-lg text-app-muted group-hover:text-blue-400 group-hover:scale-105 transition-all shrink-0">
@@ -646,6 +647,7 @@ export default function Computers() {
                     </div>
                   </td>
                   <td className="px-3.5 py-2.5 text-[11px] text-app-muted font-bold uppercase whitespace-nowrap">{comp.department}</td>
+                  <td className="px-3.5 py-2.5 text-xs text-app-text font-bold whitespace-nowrap">{comp.computerName || "-"}</td>
                   <td className="px-3.5 py-2.5 text-[11px] text-app-muted font-medium whitespace-nowrap">{comp.os}</td>
                   <td className="px-3.5 py-2.5">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${
