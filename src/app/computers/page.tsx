@@ -129,17 +129,19 @@ export default function Computers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<keyof Computer | "All">("All");
   const [selectedCompany, setSelectedCompany] = useState<"All" | "Whitespace Partners" | "Whitespace Connect">("All");
-  const [selectedDepartmentGroup, setSelectedDepartmentGroup] = useState<"ALL" | "STUDIO 1" | "STUDIO 2" | "STUDIO 3" | "STUDIO 4" | "3D" | "Other">("ALL");
+  const [selectedDepartmentGroup, setSelectedDepartmentGroup] = useState<"ALL" | "STUDIO 1" | "STUDIO 2" | "STUDIO 3" | "STUDIO 4" | "3D" | "IT" | "Other">("ALL");
 
-  // Helper to normalize and match Department into STUDIO 1, STUDIO 2, STUDIO 3, STUDIO 4, 3D, or Other
-  const getDepartmentGroup = (dept: string): "STUDIO 1" | "STUDIO 2" | "STUDIO 3" | "STUDIO 4" | "3D" | "Other" => {
+  // Helper to normalize and match Department into STUDIO 1, STUDIO 2, STUDIO 3, STUDIO 4, 3D, IT, or Other
+  const getDepartmentGroup = (dept: string): "STUDIO 1" | "STUDIO 2" | "STUDIO 3" | "STUDIO 4" | "3D" | "IT" | "Other" => {
     if (!dept) return "Other";
-    const cleaned = dept.toUpperCase().replace(/[\s\-_]/g, "");
+    const upper = dept.toUpperCase().trim();
+    const cleaned = upper.replace(/[\s\-_]/g, "");
     if (cleaned === "STUDIO1") return "STUDIO 1";
     if (cleaned === "STUDIO2") return "STUDIO 2";
     if (cleaned === "STUDIO3") return "STUDIO 3";
     if (cleaned === "STUDIO4") return "STUDIO 4";
     if (cleaned === "3D" || cleaned.startsWith("3D")) return "3D";
+    if (upper === "IT" || /\bIT\b/.test(upper) || upper.includes("แผนก IT") || upper.includes("แผนกIT")) return "IT";
     return "Other";
   };
 
@@ -152,6 +154,7 @@ export default function Computers() {
       "STUDIO 3": 0,
       "STUDIO 4": 0,
       "3D": 0,
+      "IT": 0,
       Other: 0,
     };
 
@@ -647,6 +650,7 @@ export default function Computers() {
               { id: "STUDIO 3", label: "STUDIO 3" },
               { id: "STUDIO 4", label: "STUDIO 4" },
               { id: "3D", label: "3D" },
+              { id: "IT", label: "IT" },
               { id: "Other", label: "Other" },
             ].map((tab) => {
               const isActive = selectedDepartmentGroup === tab.id;
