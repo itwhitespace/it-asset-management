@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Filter, Monitor, Laptop, X, Eye, Edit, Building2, Trash2, AlertTriangle, Download, UserCheck } from "lucide-react";
+import { Plus, Search, Filter, Monitor, Laptop, X, Eye, Edit, Building2, Trash2, AlertTriangle, Download, UserCheck, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { initialComputers, Computer } from "@/data/computers";
 import PinModal from "@/components/PinModal";
 import OwnershipHistoryModal from "@/components/OwnershipHistoryModal";
@@ -25,6 +25,30 @@ export default function Computers() {
   const [historyDevice, setHistoryDevice] = useState<Computer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAdmin, login } = useAuth();
+
+  // Sorting State (Defaults to Device ID ascending)
+  const [sortField, setSortField] = useState<keyof Computer>("id");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (field: keyof Computer) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const renderSortIcon = (field: keyof Computer) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity" />;
+    }
+    return sortOrder === "asc" ? (
+      <ArrowUp className="w-3 h-3 text-blue-400 font-bold" />
+    ) : (
+      <ArrowDown className="w-3 h-3 text-blue-400 font-bold" />
+    );
+  };
 
   const handleUpdateComputerUser = async (compId: string, newUser: string, newDept: string) => {
     setComputers((prev) =>
@@ -161,7 +185,7 @@ export default function Computers() {
     }
   };
 
-  // Memoized filtered and sorted computers (Sorted strictly by Device ID)
+  // Memoized filtered and sorted computers (Default sorted strictly by Device ID)
   const filteredComputers = useMemo(() => {
     return computers
       .filter((comp) => {
@@ -192,8 +216,13 @@ export default function Computers() {
         const value = String(comp[filterCategory] || "").toLowerCase();
         return value.includes(searchLower);
       })
-      .sort((a, b) => (a.id || "").localeCompare(b.id || "", undefined, { numeric: true, sensitivity: "base" }));
-  }, [computers, searchQuery, filterCategory, selectedCompany, selectedDepartmentGroup]);
+      .sort((a, b) => {
+        const valA = String(a[sortField] || "");
+        const valB = String(b[sortField] || "");
+        const result = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: "base" });
+        return sortOrder === "asc" ? result : -result;
+      });
+  }, [computers, searchQuery, filterCategory, selectedCompany, selectedDepartmentGroup, sortField, sortOrder]);
 
   // Fetch from Supabase on mount
   useEffect(() => {
@@ -207,7 +236,7 @@ export default function Computers() {
       const { data, error } = await supabase
         .from('computers')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: true });
 
       if (error || !data || data.length === 0) {
         console.warn("Using initialComputers fallback data:", error?.message);
@@ -683,15 +712,55 @@ export default function Computers() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-app-bg/50 text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border">
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Device ID</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Device Info</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Assigned To</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Company</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Department</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Computer Name</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">OS</th>
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">Status</th>
+              <tr className="bg-app-bg/50 text-app-muted text-[10px] uppercase font-black tracking-widest border-b border-app-border select-none">
+                <th onClick={() => handleSort("id")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Device ID</span>
+                    {renderSortIcon("id")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("model")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Device Info</span>
+                    {renderSortIcon("model")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("user")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Assigned To</span>
+                    {renderSortIcon("user")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("company")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Company</span>
+                    {renderSortIcon("company")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("department")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Department</span>
+                    {renderSortIcon("department")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("computerName")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Computer Name</span>
+                    {renderSortIcon("computerName")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("os")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>OS</span>
+                    {renderSortIcon("os")}
+                  </div>
+                </th>
+                <th onClick={() => handleSort("status")} className="px-3.5 py-3 font-bold whitespace-nowrap cursor-pointer hover:text-app-text transition-colors group">
+                  <div className="flex items-center gap-1.5">
+                    <span>Status</span>
+                    {renderSortIcon("status")}
+                  </div>
+                </th>
                 <th className="px-3.5 py-3 font-bold text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
