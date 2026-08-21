@@ -219,7 +219,7 @@ export default function Computers() {
       .sort((a, b) => {
         const valA = String(a[sortField] || "");
         const valB = String(b[sortField] || "");
-        const result = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: "base" });
+        const result = valA.localeCompare(valB, "en", { sensitivity: "base" });
         return sortOrder === "asc" ? result : -result;
       });
   }, [computers, searchQuery, filterCategory, selectedCompany, selectedDepartmentGroup, sortField, sortOrder]);
