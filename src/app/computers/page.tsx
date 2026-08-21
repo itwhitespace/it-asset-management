@@ -360,11 +360,12 @@ export default function Computers() {
     if (!editingDevice) return;
     const formData = new FormData(e.currentTarget);
     const updatedCompany = ((formData.get("company") as string) || "Whitespace Partners").trim() as any;
-    const targetId = (formData.get("id") as string) || editingDevice.id;
+    const originalId = editingDevice.id;
+    const newId = ((formData.get("id") as string) || originalId).trim();
 
     const updatedComputer: Computer = {
       ...editingDevice,
-      id: targetId,
+      id: newId,
       computerName: formData.get("computerName") as string,
       model: formData.get("model") as string,
       user: formData.get("user") as string || "Unassigned",
@@ -388,19 +389,21 @@ export default function Computers() {
 
     // 1. Optimistic update
     setComputers((prev) =>
-      prev.map((item) => (item.id === targetId || item.id === editingDevice.id ? updatedComputer : item))
+      prev.map((item) => (item.id === originalId || item.id === newId ? updatedComputer : item))
     );
 
     // 2. Local persistence (savedEdits + savedAdditions sync strictly by id)
     try {
       const savedEdits = JSON.parse(localStorage.getItem("local_computer_edits") || "{}");
-      savedEdits[targetId] = updatedComputer;
-      if (editingDevice.id) savedEdits[editingDevice.id] = updatedComputer;
+      if (originalId !== newId) {
+        delete savedEdits[originalId];
+      }
+      savedEdits[newId] = updatedComputer;
       localStorage.setItem("local_computer_edits", JSON.stringify(savedEdits));
 
       const savedAdditions = JSON.parse(localStorage.getItem("local_computer_additions") || "[]");
       const updatedAdditions = savedAdditions.map((add: Computer) =>
-        (add.id === targetId || add.id === editingDevice.id)
+        (add.id === originalId || add.id === newId)
           ? updatedComputer
           : add
       );
@@ -420,7 +423,7 @@ export default function Computers() {
     const { error } = await supabase
       .from('computers')
       .update(mapToDB(updatedComputer))
-      .eq('id', targetId);
+      .eq('id', originalId);
 
     if (error) {
       console.warn("Supabase update info:", error.message);
@@ -459,14 +462,10 @@ export default function Computers() {
 
   const FormFields = ({ def }: { def?: Computer }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-      {!def ? (
-        <div>
-          <label className="block text-xs font-bold text-app-muted mb-1">Device ID</label>
-          <input required name="id" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-xs text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. MAC-005" />
-        </div>
-      ) : (
-        <input type="hidden" name="id" value={def.id} />
-      )}
+      <div>
+        <label className="block text-xs font-bold text-app-muted mb-1">Device ID</label>
+        <input required defaultValue={def?.id} name="id" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-xs text-app-text focus:outline-none focus:border-blue-500 font-mono font-bold" placeholder="e.g. WS-2503BE2D" />
+      </div>
       <div>
         <label className="block text-xs font-bold text-app-muted mb-1">Computer Name</label>
         <input required defaultValue={def?.computerName} name="computerName" type="text" className="w-full bg-app-bg border border-app-border rounded-xl px-3.5 py-2 text-xs text-app-text focus:outline-none focus:border-blue-500" placeholder="e.g. IT-NB-01" />
