@@ -735,7 +735,7 @@ export default function Computers() {
                   <td className="px-3.5 py-2.5">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${
                       comp.status === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                      "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                      "bg-amber-500/10 text-amber-400 border-amber-500/20"
                     }`}>
                       {comp.status.toUpperCase()}
                     </span>
@@ -863,7 +863,7 @@ export default function Computers() {
                       <div className="flex justify-between"><span className="text-app-muted">Assigned To:</span><span className="text-app-text font-bold">{viewingDevice.user}</span></div>
                       <div className="flex justify-between"><span className="text-app-muted">Company:</span><span className="text-app-text font-bold">{viewingDevice.company}</span></div>
                       <div className="flex justify-between"><span className="text-app-muted">Department:</span><span className="text-app-text font-bold">{viewingDevice.department}</span></div>
-                      <div className="flex justify-between"><span className="text-app-muted">Status:</span><span className="text-emerald-400 font-bold">{viewingDevice.status}</span></div>
+                      <div className="flex justify-between"><span className="text-app-muted">Status:</span><span className={`font-bold ${viewingDevice.status === "Active" ? "text-emerald-400" : "text-amber-400"}`}>{viewingDevice.status}</span></div>
                       <div className="flex justify-between"><span className="text-app-muted">Purchase Date:</span><span className="text-app-text font-bold">{viewingDevice.purchaseDate}</span></div>
                       <div className="flex justify-between"><span className="text-app-muted">Warranty Expiry:</span><span className="text-app-text font-bold">{viewingDevice.warranty}</span></div>
                       <div className="flex justify-between"><span className="text-app-muted">Price:</span><span className="text-app-text font-bold">฿{viewingDevice.price}</span></div>
