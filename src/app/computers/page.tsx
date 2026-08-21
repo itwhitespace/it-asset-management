@@ -105,6 +105,41 @@ export default function Computers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<keyof Computer | "All">("All");
   const [selectedCompany, setSelectedCompany] = useState<"All" | "Whitespace Partners" | "Whitespace Connect">("All");
+  const [selectedDepartmentGroup, setSelectedDepartmentGroup] = useState<"ALL" | "STUDIO 1" | "STUDIO 2" | "STUDIO 3" | "STUDIO 4" | "Other">("ALL");
+
+  // Helper to normalize and match Department into STUDIO 1, STUDIO 2, STUDIO 3, STUDIO 4, or Other
+  const getDepartmentGroup = (dept: string): "STUDIO 1" | "STUDIO 2" | "STUDIO 3" | "STUDIO 4" | "Other" => {
+    if (!dept) return "Other";
+    const cleaned = dept.toUpperCase().replace(/[\s\-_]/g, "");
+    if (cleaned === "STUDIO1") return "STUDIO 1";
+    if (cleaned === "STUDIO2") return "STUDIO 2";
+    if (cleaned === "STUDIO3") return "STUDIO 3";
+    if (cleaned === "STUDIO4") return "STUDIO 4";
+    return "Other";
+  };
+
+  // Compute counts for each department group dynamically
+  const departmentGroupCounts = useMemo(() => {
+    const counts = {
+      ALL: 0,
+      "STUDIO 1": 0,
+      "STUDIO 2": 0,
+      "STUDIO 3": 0,
+      "STUDIO 4": 0,
+      Other: 0,
+    };
+
+    computers.forEach((comp) => {
+      if (selectedCompany !== "All" && comp.company !== selectedCompany) {
+        return;
+      }
+      counts.ALL++;
+      const group = getDepartmentGroup(comp.department);
+      counts[group]++;
+    });
+
+    return counts;
+  }, [computers, selectedCompany]);
 
   // Sync selectedCompany state with searchParam from Sidebar or URL
   useEffect(() => {
@@ -124,18 +159,23 @@ export default function Computers() {
     }
   };
 
-  // Memoized filtered and sorted computers
+  // Memoized filtered and sorted computers (Sorted strictly by Device ID)
   const filteredComputers = useMemo(() => {
     return computers
-      .filter(comp => {
+      .filter((comp) => {
         if (selectedCompany !== "All" && comp.company !== selectedCompany) {
           return false;
         }
 
+        if (selectedDepartmentGroup !== "ALL") {
+          const compGroup = getDepartmentGroup(comp.department);
+          if (compGroup !== selectedDepartmentGroup) return false;
+        }
+
         if (!searchQuery) return true;
-        
+
         const searchLower = searchQuery.toLowerCase();
-        
+
         if (filterCategory === "All") {
           return (
             (comp.id || "").toLowerCase().includes(searchLower) ||
@@ -146,12 +186,12 @@ export default function Computers() {
             (comp.department || "").toLowerCase().includes(searchLower)
           );
         }
-        
+
         const value = String(comp[filterCategory] || "").toLowerCase();
         return value.includes(searchLower);
       })
-      .sort((a, b) => (a.computerName || "").localeCompare(b.computerName || ""));
-  }, [computers, searchQuery, filterCategory, selectedCompany]);
+      .sort((a, b) => (a.id || "").localeCompare(b.id || "", undefined, { numeric: true, sensitivity: "base" }));
+  }, [computers, searchQuery, filterCategory, selectedCompany, selectedDepartmentGroup]);
 
   // Fetch from Supabase on mount
   useEffect(() => {
@@ -563,7 +603,48 @@ export default function Computers() {
         transition={{ delay: 0.1 }}
         className="bg-app-surface border border-app-border rounded-2xl overflow-hidden shadow-sm"
       >
-        <div className="p-3.5 border-b border-app-border flex flex-col gap-3 bg-app-surface/50">
+        <div className="p-3.5 border-b border-app-border flex flex-col gap-3.5 bg-app-surface/50">
+          {/* Department Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-app-muted flex items-center gap-1.5 mr-1">
+              <Building2 className="w-3.5 h-3.5 text-blue-400" />
+              Department:
+            </span>
+            {[
+              { id: "ALL", label: "ALL" },
+              { id: "STUDIO 1", label: "STUDIO 1" },
+              { id: "STUDIO 2", label: "STUDIO 2" },
+              { id: "STUDIO 3", label: "STUDIO 3" },
+              { id: "STUDIO 4", label: "STUDIO 4" },
+              { id: "Other", label: "Other" },
+            ].map((tab) => {
+              const isActive = selectedDepartmentGroup === tab.id;
+              const count = departmentGroupCounts[tab.id as keyof typeof departmentGroupCounts] || 0;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedDepartmentGroup(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                    isActive
+                      ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/20 scale-[1.02]"
+                      : "bg-app-bg text-app-muted hover:text-app-text border-app-border hover:border-app-muted/30"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-app-surface text-app-muted border border-app-border"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex flex-col md:flex-row gap-3 justify-between">
             <div className="relative max-w-md w-full">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
